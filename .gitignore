@@ -73,8 +73,10 @@ Thumbs.db
 *.dll
 *.exe
 build-*
+*_node
 
 #Directories
 /ros_bubble*
 /vrep*
 /v_rep*
+

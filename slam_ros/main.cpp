@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include "std_msgs/Bool.h"
 #include "std_msgs/Float32.h"
+#include "geometry_msgs/Transform.h"
 #include "Robot.h"
 #include "Vrep.h"
 
@@ -47,6 +48,8 @@ int main(int argc,char* argv[])
     double rot[2] = {10*M_PI, 10*M_PI};
     rover->localize(rot, lines);
 
+    ros::NodeHandle nh;
+    ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("slam_ros/robotCov", 100);
 	while(ros::ok()){
 	
 	int c = getchar();
@@ -55,6 +58,11 @@ int main(int argc,char* argv[])
 	}
 	ros::spinOnce();
 	usleep(10000);
+    geometry_msgs::Transform msg;
+    msg.translation.x = rover->xPos;
+    msg.translation.y = rover->yPos;
+    msg.translation.z = rover->thetaPos;
+    pubCov.publish(msg);
 	}
 	
 	ros::shutdown();	
