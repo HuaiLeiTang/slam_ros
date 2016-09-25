@@ -50,22 +50,22 @@ int main(int argc,char* argv[])
 
     ros::NodeHandle nh;
     ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("slam_ros/robotCov", 100);
-	while(ros::ok()){
-	
-	int c = getchar();
-	if(c == 119){
-		std::cout << "FORWARD, MARCH!";
-	}
-	ros::spinOnce();
-	usleep(10000);
-    geometry_msgs::Transform msg;
-    msg.translation.x = rover->xPos;
-    msg.translation.y = rover->yPos;
-    msg.translation.z = rover->thetaPos;
-    pubCov.publish(msg);
-	}
-	
-	ros::shutdown();	
+    while(ros::ok()){
+
+        /*int c = getchar();
+        if(c == 119){
+            std::cout << "FORWARD, MARCH!";
+        }*/
+        ros::spinOnce();
+        usleep(500000);
+        geometry_msgs::Transform msg;
+        msg.translation.x = rover->xPos;
+        msg.translation.y = rover->yPos;
+        msg.translation.z = rover->thetaPos;
+        pubCov.publish(msg);
+    }
+
+    ros::shutdown();
     return 0;
 
 }
