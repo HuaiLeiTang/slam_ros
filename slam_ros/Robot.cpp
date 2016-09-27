@@ -7,6 +7,8 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_permutation.h>
+#include "gsl/gsl_math.h"
+#include "gsl/gsl_eigen.h"
 
 #include <string>
 
@@ -53,15 +55,67 @@ void Robot::robot2World2(simxFloat* rot){
 
 }
 
-void Robot::localize(double* rot, const std::vector<line> &lines)
+bool Robot::getEllipse(float axii[], float &angle)
+{
+    double data[] = { this->P_t0[0]  , this->P_t0[1],
+                      this->P_t0[3], this->P_t0[4]};
+
+    gsl_matrix_view m = gsl_matrix_view_array(data, 2, 2);
+
+    gsl_vector_complex *eval = gsl_vector_complex_alloc(2);
+    gsl_matrix_complex *evec = gsl_matrix_complex_alloc(2, 2);
+
+    gsl_eigen_nonsymmv_workspace* w = gsl_eigen_nonsymmv_alloc(2);
+
+    int returnCode = gsl_eigen_nonsymmv (&m.matrix, eval, evec, w);
+
+    gsl_eigen_nonsymmv_free (w);
+
+    gsl_eigen_nonsymmv_sort (eval, evec, GSL_EIGEN_SORT_ABS_ASC);
+
+    {
+        int i;
+        gsl_complex eval_i;
+        gsl_vector_complex_view evec_i;
+        gsl_complex z1;
+        gsl_complex z2;
+
+        for (i = 0; i < 2; i++){
+            eval_i = gsl_vector_complex_get (eval, i);
+            evec_i = gsl_matrix_complex_column (evec, i);
+
+            std::cout << "\n eigenvalue: " << GSL_REAL(eval_i) << " " << GSL_IMAG(eval_i) << "i\n";
+            axii[i] = 2.f*std::sqrt(5.991*GSL_REAL(eval_i));
+            std::cout << "eigenvector: ";
+
+            z1 = gsl_vector_complex_get(&evec_i.vector, 0);
+            z2 = gsl_vector_complex_get(&evec_i.vector, 1);
+            std::cout << GSL_REAL(z1) << " " << GSL_IMAG(z1) << "i\n";
+            std::cout << GSL_REAL(z2) << " " << GSL_IMAG(z2) << "i\n";
+
+        }
+        angle = std::atan2(GSL_REAL(z1), GSL_REAL(z2));
+    }
+
+    gsl_vector_complex_free (eval);
+    gsl_matrix_complex_free (evec);
+
+    if(returnCode == 0){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+void Robot::localize(float *rot, const std::vector<line> &lines)
 {
 
     /*double left, right;
     odometry(left, right);
     double u_odo[2] = {left, right};*/
     double u_odo[2];
-    u_odo[0] = rot[0];
-    u_odo[1] = rot[1];
+    u_odo[0] = static_cast<double>(rot[0]);
+    u_odo[1] = static_cast<double>(rot[1]);
     double u[] = {0, 0, 0};
     this->fiToXi(u_odo, u);   //only fully accurate for infinitesimal displacements
 
@@ -375,14 +429,13 @@ void Robot::forwardKin()
     {
         this->forKin[i] = f[i];
     }
-    printf("\n Forward Differential Kinematics matrix:");
-    printf("\n");
+    std::cout << "\n Forward Differential Kinematics matrix: \n";
     for (i = 0; i < 6; ++i)
     {
-        printf ("%g ", this->forKin[i]);
+        std::cout << this->forKin[i] << " ";
         if(i%2 == 1)
         {
-            printf("\n");
+            std::cout << std::endl;
         }
     }
 
@@ -449,13 +502,13 @@ void Robot::inverseKin()
     {
         this->invKin[i] = k[i];
     }
-    printf("\n Inverse Differentail Kinematics matrix: \n");
+   std::cout << "\n Inverse Differentail Kinematics matrix: \n";
     for (i = 0; i < 6; ++i)
     {
-        printf ("%g ", this->invKin[i]);
+        std::cout << this->invKin[i] << " ";
         if(i%3 == 2)
         {
-            printf("\n");
+            std::cout << std::endl;
         }
     }
 

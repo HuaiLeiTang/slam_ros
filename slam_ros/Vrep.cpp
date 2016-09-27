@@ -156,7 +156,7 @@ void Vrep::loop(Robot* robot)
                     simxFloat right;
                     simxGetJointPosition(clientID, leftMotorHandle, &left, simx_opmode_blocking);
                     simxGetJointPosition(clientID, rightMotorHandle, &right, simx_opmode_blocking);
-                    double rot[2];
+                    float rot[2];
                     rot[0] = left - lastRotationL;
                     rot[1] = right - lastRotationR;
                     std::vector<line> lines;
@@ -215,7 +215,7 @@ void Vrep::loop(Robot* robot)
                         simxFloat right;
                         simxGetJointPosition(clientID, leftMotorHandle, &left, simx_opmode_blocking);
                         simxGetJointPosition(clientID, rightMotorHandle, &right, simx_opmode_blocking);
-                        double rot[2];
+                        float rot[2];
                         rot[0] = left - lastRotationL;
                         rot[1] = right - lastRotationR;
                         std::vector<line> lines;

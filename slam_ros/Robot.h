@@ -52,11 +52,12 @@ public:
     /// \brief issues move commands to the robot
     void walk(double r, double theta);
     /// \brief requests an IR sensor measurement
-    void measure();
-    void readOdometry(double &left, double &right);
-    void localize(double* rot, const std::vector<line> &lines);
     void robot2World1(simxFloat dist, simxFloat* pos);
     void robot2World2(simxFloat* rot);
+    bool getEllipse(float axii[2], float& angle);
+    void localize(float* rot, const std::vector<line> &lines);
+    void measure();
+    void readOdometry(double &left, double &right);
 };
 
 

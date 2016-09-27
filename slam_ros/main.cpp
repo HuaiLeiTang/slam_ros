@@ -19,10 +19,24 @@
 #include <unistd.h>
 #include "std_msgs/Bool.h"
 #include "std_msgs/Float32.h"
+#include "std_msgs/Float32MultiArray.h"
 #include "geometry_msgs/Transform.h"
 #include "Robot.h"
 #include "Vrep.h"
 
+bool update = true;
+float rot[2];
+std::vector<line> lines;
+
+void sensors_cb(std_msgs::Float32MultiArray msg){
+    rot[0] = msg.data[0];
+    rot[1] = msg.data[1];
+    for(int i = 2; i < msg.layout.dim[0].size; ++i){
+        lines.clear();
+        lines.push_back(line(msg.data[2], msg.data[3]));
+    }
+    update = true;
+}
 
 int main(int argc,char* argv[])
 {
@@ -40,13 +54,14 @@ int main(int argc,char* argv[])
     }
     vrep->loop(rover);
     delete vrep;*/
-
-    std::vector<line> lines;
     lines.reserve(10);
     lines.push_back(line(0.0, 4.0));
     lines.push_back(line(M_PI/M_PI*182.0, 6.2));
-    double rot[2] = {10*M_PI, 10*M_PI};
+    rot[0] = 10*M_PI; rot[1] = 10*M_PI;
     rover->localize(rot, lines);
+    for(int i = 0; i < 9; ++i){
+        std::cout << " " << rover->P_t0[i] << std::endl;
+    }
 
     ros::NodeHandle nh;
     ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("slam_ros/robotCov", 100);
@@ -56,15 +71,32 @@ int main(int argc,char* argv[])
         if(c == 119){
             std::cout << "FORWARD, MARCH!";
         }*/
+        if(update){
+            update = false;
+            //rover->localize(rot, lines);
+
+            geometry_msgs::Transform msg;
+            msg.translation.x = rover->xPos;
+            msg.translation.y = rover->yPos;
+            msg.translation.z = 0;
+
+            float axii[2];
+            float angle;
+            if(rover->getEllipse(axii, angle)){
+                std::cout << "\n bigaxis: " << axii[0];
+                std::cout << "\n smallaxis: " << axii[1];
+                std::cout << "\n angle: " << angle;
+            }else{
+                std::cout <<"main: An error occured while computing the eigenvalues and vectors";
+            }
+            msg.rotation.x = axii[0];
+            msg.rotation.y = axii[1];
+            msg.rotation.z = angle;
+            pubCov.publish(msg);
+        }
         ros::spinOnce();
         usleep(500000);
-        geometry_msgs::Transform msg;
-        msg.translation.x = rover->xPos;
-        msg.translation.y = rover->yPos;
-        msg.translation.z = rover->thetaPos;
-        pubCov.publish(msg);
     }
-
     ros::shutdown();
     return 0;
 
