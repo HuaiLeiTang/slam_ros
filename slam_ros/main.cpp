@@ -64,7 +64,7 @@ int main(int argc,char* argv[])
     }
 
     ros::NodeHandle nh;
-    ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("slam_ros/robotCov", 100);
+    ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("robotPosition", 100);
     while(ros::ok()){
 
         /*int c = getchar();

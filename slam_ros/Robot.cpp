@@ -85,7 +85,7 @@ bool Robot::getEllipse(float axii[], float &angle)
             evec_i = gsl_matrix_complex_column (evec, i);
 
             std::cout << "\n eigenvalue: " << GSL_REAL(eval_i) << " " << GSL_IMAG(eval_i) << "i\n";
-            axii[i] = 2.f*std::sqrt(5.991*GSL_REAL(eval_i));
+            axii[i] = 2.f*std::sqrt(5.991*std::abs(GSL_REAL(eval_i)));
             std::cout << "eigenvector: ";
 
             z1 = gsl_vector_complex_get(&evec_i.vector, 0);
