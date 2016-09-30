@@ -34,17 +34,20 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     points.clear();
     lines.clear();
     for(int i = 0; i < (msg.layout.dim[0].size/2); i+=2){
-        std::cout << "\point: " << (msg.data[i+1]*180/M_PI) << " " << msg.data[i];
-        points.push_back(polar_point((msg.data[i+1]*180/M_PI), msg.data[i], 0.1));
+        std::cout << "\npoint: " << (msg.data[i+1]*180/M_PI) << " " << msg.data[i]*100.0;
+        points.push_back(polar_point((msg.data[i+1]*180/M_PI), msg.data[i]*100.0, 1.0));
+        points[points.size()-1].variance = 1.0;
     }
     std::cout << "\nstarting line extraction";
-    lines = LineExtraction(points);
+    //lines = LineExtraction(points);       //not working
+    lineXtracion get_lines(points);
+    get_lines.Extract();
     std::cout << "\nline extraction finished";
     std::cout << "\nresults: ";
-    for(int i = 0; i < lines.size(); ++i){
-        std::cout << "\n" << lines[i].r << " " << lines[i].alfa;
+    for(int i = 0; i < get_lines.Fitlines.size(); ++i){
+        std::cout << "\n" << get_lines.Fitlines[i].r << " " << get_lines.Fitlines[i].alfa;
     }
-    if(lines.empty()){
+    if(get_lines.Fitlines.empty()){
         std::cout << "\nno lines found";
     }
     std::cout << std::endl;

@@ -253,6 +253,9 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             if(v_trans__S_inv__v[0] > g_2){
                 std::cout <<"\n continued, Mahalanobis: ";
                 std::cout << std::to_string(v_trans__S_inv__v[0]);
+                if(j == oldLines.size()){        //no match found for new line
+                    oldLines.push_back(lines[i]);
+                }
                 continue;           //if the match was not found, try matching with the next old line
             }
             matchesNum++;
@@ -305,6 +308,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     }
     std::cout << "\n lines: " + std::to_string(lines.size());
     std::cout << "\n posAdjustments: " + std::to_string(posAdjustments.size());
+
     if(lines.size() == 0 || posAdjustments.size() == 0)         //no matches found, or no lines received
     {
         std::cout << "Robot::Locate(): no lines recieved from caller";
@@ -328,6 +332,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         }
     }else{                                                      //matched lines were found
         //at this point, the Robot covariance matrix should already be done
+        std::cout << "\nlines received";
         double sum[3] = {0,
                          0,
                          0};
