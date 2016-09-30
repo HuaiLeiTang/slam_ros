@@ -21,20 +21,37 @@
 #include "std_msgs/Float32.h"
 #include "std_msgs/Float32MultiArray.h"
 #include "geometry_msgs/Transform.h"
+#include "geometry_msgs/Vector3.h"
 #include "Robot.h"
 #include "Vrep.h"
 
 bool update = true;
 float rot[2];
+std::vector<polar_point> points;
 std::vector<line> lines;
 
-void sensors_cb(std_msgs::Float32MultiArray msg){
-    rot[0] = msg.data[0];
-    rot[1] = msg.data[1];
-    for(int i = 2; i < msg.layout.dim[0].size; ++i){
-        lines.clear();
-        lines.push_back(line(msg.data[2], msg.data[3]));
+void mapping_cb(std_msgs::Float32MultiArray msg){
+    points.clear();
+    lines.clear();
+    for(int i = 0; i < (msg.layout.dim[0].size/2); i+=2){
+        std::cout << "\point: " << (msg.data[i+1]*180/M_PI) << " " << msg.data[i];
+        points.push_back(polar_point((msg.data[i+1]*180/M_PI), msg.data[i], 0.1));
     }
+    std::cout << "\nstarting line extraction";
+    lines = LineExtraction(points);
+    std::cout << "\nline extraction finished";
+    std::cout << "\nresults: ";
+    for(int i = 0; i < lines.size(); ++i){
+        std::cout << "\n" << lines[i].r << " " << lines[i].alfa;
+    }
+    if(lines.empty()){
+        std::cout << "\nno lines found";
+    }
+    std::cout << std::endl;
+}
+void encoderUpdate_cb(geometry_msgs::Vector3 msg){
+    rot[0] = msg.x;
+    rot[1] = msg.y;
     update = true;
 }
 
@@ -55,16 +72,23 @@ int main(int argc,char* argv[])
     vrep->loop(rover);
     delete vrep;*/
     lines.reserve(10);
-    lines.push_back(line(0.0, 4.0));
+    /*lines.push_back(line(0.0, 4.0));
     lines.push_back(line(M_PI/M_PI*182.0, 6.2));
     rot[0] = 10*M_PI; rot[1] = 10*M_PI;
     rover->localize(rot, lines);
     for(int i = 0; i < 9; ++i){
         std::cout << " " << rover->P_t0[i] << std::endl;
-    }
+    }*/
 
     ros::NodeHandle nh;
     ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("robotPosition", 100);
+    ros::Subscriber subEncoder = nh.subscribe<geometry_msgs::Vector3>("encoderPosition", 100, &encoderUpdate_cb);
+    ros::Subscriber subMapping = nh.subscribe<std_msgs::Float32MultiArray>("mappingPoints", 10, &mapping_cb);
+
+    usleep(1000000);        //the nodes require time to connect internally (otherwise the "publish" is lost)
+
+    geometry_msgs::Transform msg;
+
     while(ros::ok()){
 
         /*int c = getchar();
@@ -73,9 +97,8 @@ int main(int argc,char* argv[])
         }*/
         if(update){
             update = false;
-            //rover->localize(rot, lines);
+            rover->localize(rot, lines);
 
-            geometry_msgs::Transform msg;
             msg.translation.x = rover->xPos;
             msg.translation.y = rover->yPos;
             msg.translation.z = 0;
@@ -86,6 +109,7 @@ int main(int argc,char* argv[])
                 std::cout << "\n bigaxis: " << axii[0];
                 std::cout << "\n smallaxis: " << axii[1];
                 std::cout << "\n angle: " << angle;
+                std::cout << "\n";
             }else{
                 std::cout <<"main: An error occured while computing the eigenvalues and vectors";
             }
@@ -97,6 +121,8 @@ int main(int argc,char* argv[])
         ros::spinOnce();
         usleep(500000);
     }
+    subEncoder.shutdown();
+    subMapping.shutdown();
     ros::shutdown();
     return 0;
 

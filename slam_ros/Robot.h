@@ -6,6 +6,7 @@
 #include <array>
 
 #include "simplifyPath.h"
+#include "lineFitting.h"
 
 extern "C" {
 #include "extApi.h"
