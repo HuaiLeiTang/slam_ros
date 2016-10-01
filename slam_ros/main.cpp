@@ -35,11 +35,12 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     lines.clear();
     polar_point temp;
     std::cout << "\n point count:" << msg.layout.dim[0].size/2;
-    for(int i = 0; i < (msg.layout.dim[0].size/2); i+=2){
+    for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
-        points[points.size()-1].alfa = msg.data[i+1];
-        points[points.size()-1].r = msg.data[i]*100;
-        //points[points.size()-1].variance = 1.0;
+        points[points.size()-1].alfa = msg.data[i+1] - M_PI;
+        points[points.size()-1].r = msg.data[i];
+        points[points.size()-1].variance = 0.1;
+        //points[points.size()-1].weight = 1;
         std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
     }
     std::cout << "\nstarting line extraction";
