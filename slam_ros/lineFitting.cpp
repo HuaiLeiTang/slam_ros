@@ -440,7 +440,7 @@ void lineXtracion::Export_polar_data(void)
 }
 
 vector<line> LineExtraction(vector<polar_point>& pol_points) {
-    int len = pol_points.size() - 2;
+    int len = pol_points.size() - 1;
     double dist[len];
     for(int i = 0; i < len;i++) {
         dist[i] = pow(pow(pol_points[i].r,2) + pow(pol_points[i + 1].r,2) - 2*pol_points[i].r*pol_points[i + 1].r*cos(pol_points[i + 1].alfa - pol_points[i].alfa),2);
