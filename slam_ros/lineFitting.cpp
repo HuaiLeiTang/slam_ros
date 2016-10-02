@@ -440,7 +440,52 @@ void lineXtracion::Export_polar_data(void)
 }
 
 vector<line> LineExtraction(vector<polar_point>& pol_points) {
-	lineXtracion get_lines(pol_points);
-	get_lines.Extract();
-	return get_lines.Fitlines;
+    int len = pol_points.size() - 1;
+    double dist[len];
+    double max = 0;
+    for(int i = 0; i < len;i++) {
+        dist[i] = pow(pow(pol_points[i].r,2) + pow(pol_points[i + 1].r,2) - 2*pol_points[i].r*pol_points[i + 1].r*cos(pol_points[i + 1].alfa - pol_points[i].alfa),2);
+        if(dist[i] > max) {
+            max = dist[i];
+        }
+    }
+    double sum_di;
+    for(int i = 0; i < len; i++) {
+        sum_di = sum_di + dist[i];
+    }
+    double avr = sum_di/len;
+    double max_avr = max/avr;
+    vector<int> split;
+    if(max_avr > 35) {
+        for(int i = 0; i < len; i++) {
+            if(dist[i] > avr) {
+                split.push_back(i + 1);
+            }
+        }
+    }
+    if(split.size() != 0) {
+        int segmens_num = split.size() + 1;
+        vector<polar_point> segmens[segmens_num];
+        vector<polar_point>::iterator iter = pol_points.begin();
+        for(int j = 0; j < split.size() - 1; j++) {
+            segmens[j + 1].insert(segmens[j + 1].begin(),iter + split[j],iter + split[j + 1]);
+        }
+        segmens[0].insert(segmens[0].begin(),iter,iter + split[0]);
+        segmens[split.size()].insert(segmens[split.size()].begin(),iter + split[split.size() - 1],pol_points.end());
+        vector<line> lines;
+        lineXtracion get_lines[segmens_num];
+        for(int i = 0; i < segmens_num; i++) {
+            get_lines[i] = lineXtracion(segmens[i]);
+        }
+        for(int i = 0; i < segmens_num; i++) {
+            get_lines[i].Extract();
+            lines.insert(lines.end(),get_lines[i].Fitlines.begin(),get_lines[i].Fitlines.end());
+        }
+        return lines;
+    }
+    else {
+        lineXtracion get_lines(pol_points);
+        get_lines.Extract();
+        return get_lines.Fitlines;
+    }
 }

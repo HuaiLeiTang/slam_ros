@@ -114,6 +114,15 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
   { //base case 2, all points between are to be removed.
     /*vector<polar_point> r(1,polar_Points[0]);
       r.push_back(polar_Points[polar_Points.size()-1]);*/
+    if(split_line.r < 0) {
+        split_line.r = abs(split_line.r);
+        if(split_line.alfa < 0) {
+            split_line.alfa = PI + split_line.alfa;
+        }
+        else {
+            split_line.alfa = -PI + split_line.alfa;
+        }
+    }
     split_line.C_AR = Covariancia(polar_Points);
     vector< pair<line,vector<polar_point> > > r;
     vector<polar_point> temp_pol(1,polar_Points[0]);
