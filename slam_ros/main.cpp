@@ -44,15 +44,15 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
         std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
     }
     std::cout << "\nstarting line extraction";
-    //lines = LineExtraction(points);       //not working
-    lineXtracion get_lines(points);
+    lines = LineExtraction(points);       //not working
+    /*lineXtracion get_lines(points);
     get_lines.Extract();
     std::cout << "\nline extraction finished";
-    std::cout << "\nresults: ";
-    for(int i = 0; i < get_lines.Fitlines.size(); ++i){
-        std::cout << "\n" << get_lines.Fitlines[i].r << " " << get_lines.Fitlines[i].alfa;
+    std::cout << "\nresults: ";*/
+    for(int i = 0; i < lines.size(); ++i){
+        std::cout << "\n" << lines[i].r << " " << lines[i].alfa;
     }
-    if(get_lines.Fitlines.empty()){
+    if(lines.empty()){
         std::cout << "\nno lines found";
     }
     std::cout << std::endl;

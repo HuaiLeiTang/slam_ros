@@ -311,7 +311,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 
     if(lines.size() == 0 || posAdjustments.size() == 0)         //no matches found, or no lines received
     {
-        std::cout << "Robot::Locate(): no lines recieved from caller";
+        std::cout << "\nRobot::Locate(): no lines recieved from caller";
         this->xPos = x_pre[0];
         this->yPos = x_pre[1];
         this->thetaPos = x_pre[2];
