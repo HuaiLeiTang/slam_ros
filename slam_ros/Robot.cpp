@@ -26,8 +26,8 @@ Robot::Robot(double x, double y, double theta)
     oldLines.reserve(500);
     oldPoints.reserve(500);
 
-    oldLines.push_back(line(0, 5.0));       //ADR TEMP !!!
-    oldLines.push_back(line(M_PI/M_PI*180.0, 5.0));
+    //oldLines.push_back(line(0, 5.0));       //ADR TEMP !!!
+    //oldLines.push_back(line(M_PI/M_PI*180.0, 5.0));
 }
 Robot::~Robot()
 {
@@ -240,7 +240,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             // v_trans*inv(S)*v <= g^2          MAHALANOBIS
             double v_trans__S_inv[2] = {0, 0};
             double v_trans__S_inv__v[1] = {0};
-            double g_2 = 1.0;                                 //Mahalanobis distance constant goes here
+            double g_2 = 0.1;                                 //Mahalanobis distance constant goes here
             gsl_matrix_view v_trans__S_inv_v = gsl_matrix_view_array(v_trans__S_inv, 1, 2);
             gsl_matrix_view v_trans__S_inv__v_v = gsl_matrix_view_array(v_trans__S_inv__v, 1, 1);
             gsl_matrix_sub(&z_v.matrix, &h_v.matrix);   //z used as temporary for innovation vector, possible vector optimaztion
@@ -250,16 +250,18 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, &z_v.matrix, &S_inv_v.matrix, 0.0, &v_trans__S_inv_v.matrix);
             gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &v_trans__S_inv_v.matrix, &z_v.matrix, 0.0, &v_trans__S_inv__v_v.matrix);
 
-            if(v_trans__S_inv__v[0] > g_2){
+            if(std::abs(v_trans__S_inv__v[0]) > g_2){
                 std::cout <<"\n continued, Mahalanobis: ";
                 std::cout << std::to_string(v_trans__S_inv__v[0]);
-                if(j == oldLines.size()){        //no match found for new line
+                if(j == oldLines.size()-1){        //no match found for new line
                     oldLines.push_back(lines[i]);
+                    std::cout << "\n !!Adding new line: r: " << oldLines.back().r << " alfa: " << oldLines.back().alfa;
+                    break;
                 }
                 continue;           //if the match was not found, try matching with the next old line
             }
             matchesNum++;
-            std::cout << "\n match found, Mahalanobis: ";
+            std::cout << "\n !!! match found, Mahalanobis: ";
             std::cout << std::to_string(v_trans__S_inv__v[0]);
 
             // K = P_pre*Hx_trans*inv(S)
@@ -304,6 +306,11 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 
             break;      //once one match is found for a new line -> stop searching -> move onto next new line
                         //maybe don't break but keep searching for an even better match instead?
+        }
+        if(oldLines.empty()){                       //meaning that the mapping just started
+            oldLines.push_back(lines[i]);           //after this, lines will be added automatically
+            std::cout << "\n !!Adding new line: r: " << oldLines.back().r << " alfa: " << oldLines.back().alfa;
+
         }
     }
     std::cout << "\n lines: " + std::to_string(lines.size());
