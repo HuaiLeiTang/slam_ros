@@ -55,6 +55,7 @@ public:
     /// \brief requests an IR sensor measurement
     void robot2World1(simxFloat dist, simxFloat* pos);
     void robot2World2(simxFloat* rot);
+    void normalizeRadian(double& rad);
     bool getEllipse(float axii[2], float& angle);
     void localize(float* rot, const std::vector<line> &lines);
     void measure();

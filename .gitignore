@@ -74,6 +74,7 @@ Thumbs.db
 *.exe
 build-*
 *_node
+p_*
 
 #Directories
 /ros_bubble*

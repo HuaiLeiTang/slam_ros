@@ -55,6 +55,17 @@ void Robot::robot2World2(simxFloat* rot){
 
 }
 
+void Robot::normalizeRadian(double &rad)
+{
+    if(rad > M_PI){
+        rad = rad - (2.0*M_PI + std::floor(rad/(2.0*M_PI))*2.0*M_PI);
+        return;
+    }else if(rad < -M_PI){
+        rad = rad + (2.0*M_PI + std::floor(std::abs(rad)/(2.0*M_PI))*2.0*M_PI);
+        return;
+    }
+}
+
 bool Robot::getEllipse(float axii[], float &angle)
 {
     double data[] = { this->P_t0[0]  , this->P_t0[1],
@@ -195,8 +206,9 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 //                           cos(x_pre[2])*(m[1] - x_pre[1]) - sin(x_pre[2])*(m[0] - x_pre[0])
 //                          };    //transforms m into robot reference frame
             double h[2] = {m[0] - x_pre[2],
-                           m[1] - (x_pre[0]*cos(m[0])) + (x_pre[1]*sin(m[0]))
+                           m[1] - (x_pre[0]*cos(m[0]) + x_pre[1]*sin(m[0]))
                           };    //transforms m into robot reference frame
+            normalizeRadian(h[0]);
             std::cout<< "\n Robot::localize: old line positions in robot ref frame: " << h[0] << "  " << h[1];
 
 //            double Hx[6] = {-cos(x_pre[2]), -sin(x_pre[2]),   cos(x_pre[2])*(m[1] - x_pre[1]) - sin(x_pre[2])*(m[0] - x_pre[0]),
@@ -257,7 +269,14 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             gsl_matrix_view v_trans__S_inv_v = gsl_matrix_view_array(v_trans__S_inv, 1, 2);
             gsl_matrix_view v_trans__S_inv__v_v = gsl_matrix_view_array(v_trans__S_inv__v, 1, 1);
             gsl_matrix_sub(&z_v.matrix, &h_v.matrix);   //z used as temporary for innovation vector, possible vector optimaztion
-            z[0] = std::min(std::fmod(std::abs(z[0]),(2*M_PI)), 2*M_PI - std::fmod(std::abs(z[0]),(2*M_PI)));
+            //z[0] = std::min(std::fmod(std::abs(z[0]),(2*M_PI)), 2*M_PI - std::fmod(std::abs(z[0]),(2*M_PI)));
+            //z[0] = z[0] > 2.0*M_PI ? z[0]-2.0*M_PI : (z[0] < -2.0*M_PI ? z[0]+2.0*M_PI : z[0]);
+            if(std::abs(z[0] - 2.0*M_PI) < std::abs(z[0])){
+                z[0] -= 2.0*M_PI;
+            }else if(std::abs(z[0] + 2.0*M_PI) < std::abs(z[0])){
+                z[0] += 2.0*M_PI;
+            } //else do nothing
+
             std::cout << "\ndebug: distance: alfa: " << z[0] << " r: " << z[1];
 
             gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, &z_v.matrix, &S_inv_v.matrix, 0.0, &v_trans__S_inv_v.matrix);
@@ -343,7 +362,11 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                         //maybe don't break but keep searching for an even better match instead?
         }
         if(oldLines.empty()){                       //meaning that the mapping just started
+
             oldLines.push_back(lines[i]);           //after this, lines will be added automatically
+            oldLines.back().r += (this->xPos*cos(oldLines.back().alfa) + this->yPos*sin(oldLines.back().alfa));
+            oldLines.back().alfa += this->thetaPos;
+            normalizeRadian(oldLines.back().alfa);
             std::cout << "\n!New Line: alfa: " << oldLines.back().alfa << " r: " << oldLines.back().r;
 
         }
@@ -357,6 +380,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         this->xPos = x_pre[0];
         this->yPos = x_pre[1];
         this->thetaPos = x_pre[2];
+        normalizeRadian(this->thetaPos);
         std::cout << "\nTheta: " << this->thetaPos << " x: " << this->xPos << " y: " << this->yPos;
         for(int i = 0; i < 9; ++i)
         {
@@ -385,6 +409,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         this->xPos = x_pre[0] + (sum[0]/posAdjustments.size());
         this->yPos = x_pre[1] + (sum[1]/posAdjustments.size());
         this->thetaPos = x_pre[2] + (sum[2]/posAdjustments.size());
+        normalizeRadian(this->thetaPos);
         std::cout << "\n " + std::to_string(xPos);
         std::cout << "\n " + std::to_string(yPos);
         std::cout << "\n " + std::to_string(thetaPos);
@@ -392,8 +417,9 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     //saving all non-matched lines
     for(auto &lin : extraLines){
         //transforming to world reference frame
-        lin.r += this->xPos*cos(lin.alfa) + this->yPos*sin(lin.alfa);
+        lin.r += (this->xPos*cos(lin.alfa) + this->yPos*sin(lin.alfa));
         lin.alfa += this->thetaPos;
+        normalizeRadian(lin.alfa);
         oldLines.push_back(lin);
         std::cout << "\n!New Line: alfa: " << oldLines.back().alfa << " r: " << oldLines.back().r;
     }
