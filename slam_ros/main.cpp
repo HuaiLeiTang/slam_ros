@@ -41,7 +41,8 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     std::normal_distribution<double> distribution(0.0,0.03);        //3cm standard deviation
     for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
-        points[points.size()-1].alfa = msg.data[i+1] - M_PI;
+        //points[points.size()-1].alfa = msg.data[i+1] - M_PI;
+        points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
         points[points.size()-1].r = msg.data[i] + distribution(generator);
         points[points.size()-1].variance = 0.1;
         //points[points.size()-1].weight = 1;
@@ -49,13 +50,13 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     }
     std::cout << "\nstarting line extraction";
     lines = LineExtraction(points);
-    for(auto &lin : lines){
+    /*for(auto &lin : lines){
         lin.alfa += M_PI;
-    }
+    }*/
     std::cout << "\nline extraction finished";
     std::cout << "\nresults: ";
     for(int i = 0; i < lines.size(); ++i){
-        std::cout << "\n" << lines[i].r << " " << lines[i].alfa;
+        std::cout << "\n" << lines[i].alfa << " " << lines[i].r;
     }
     if(lines.empty()){
         std::cout << "\nno lines found";
@@ -76,6 +77,8 @@ int main(int argc,char* argv[])
 	ros::init(argc2, argv2, "slam");
 
     Robot* rover = new Robot(0, 0, 0);
+    lines.reserve(20);
+    points.reserve(250);
     /*Vrep* vrep = new Vrep(argc, argv);
 
     if(vrep->error != NO_ERROR)
@@ -84,7 +87,6 @@ int main(int argc,char* argv[])
     }
     vrep->loop(rover);
     delete vrep;*/
-    lines.reserve(10);
     /*lines.push_back(line(0.0, 4.0));
     lines.push_back(line(M_PI/M_PI*182.0, 6.2));
     rot[0] = 10*M_PI; rot[1] = 10*M_PI;
@@ -111,6 +113,7 @@ int main(int argc,char* argv[])
         if(update){
             update = false;
             rover->localize(rot, lines);
+            lines.clear();
 
             msg.translation.x = rover->xPos;
             msg.translation.y = rover->yPos;
