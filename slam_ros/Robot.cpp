@@ -132,7 +132,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 
     //it can be assumed that u[1] (aka the y displacement) is always zero
     double x_t0[] = {this->xPos, this->yPos, this->thetaPos};
-    double x_pre[] = {x_t0[0] + u[0]*cos(x_t0[2]+u[2]/2.0), x_t0[1] + u[0]*sin(x_t0[2]+u[2]/2.0), x_t0[2] + u[2]};   //ERROR: NO REFERENCE FRAME SWAP (possibly better without /2.0-s ?)
+    double x_pre[] = {x_t0[0] + u[0]*cos(x_t0[2]+u[2]/2.0), x_t0[1] + u[0]*sin(x_t0[2]+u[2]/2.0), x_t0[2] + u[2]};   //(possibly better without /2.0-s ?)
 
     //P_pre = Fx*P_t0*Fx' + Fu*Q*Fu'
     // ??? Fx_pre or Fx_t0 ??? dependant on x_t0
@@ -158,8 +158,8 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                                          0, 0, 0
                                         };
     //constant noise of motion model
-    double Q[9] = {u[0]*0.05, 0, 0,
-                   0, u[0]*0.1, 0,
+    double Q[9] = {std::abs(u[0]*0.05), 0, 0,
+                   0, std::abs(u[0]*0.1), 0,
                    0, 0, 0
                   };
     //predicted covariance matrix
@@ -182,6 +182,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Fu_pre_v.matrix, &Q_v.matrix, 0.0, &Fu_pre__Q_v.matrix);
     gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Fu_pre__Q_v.matrix, &Fu_pre_v.matrix, 0.0, &Fu_pre__Q__Fu_pre_trans_v.matrix);
     gsl_matrix_add(&P_pre_v.matrix, &Fu_pre__Q__Fu_pre_trans_v.matrix);   //P_pre now ready
+    std::cout << std::endl << "COVARIANCE P_PRE: " << P_pre[0] << " " << P_pre[4] << " " << P_pre[8];
 
     matchesNum = 0;
     std::vector<std::array<double, 3> > posAdjustments;          ///< weighted positional adjustments for the predicted position of the robot based on matched lines
@@ -335,7 +336,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             //gsl_matrix_view K__S_v = gsl_matrix_view_array(K__S, 3, 2);
             //gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &K_v.matrix, &S_v.matrix, 0.0, &K__S_v.matrix);
             gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &P_pre__Hx_trans_v.matrix, &K_v.matrix, 0.0, &P_pre__Hx_trans__K_trans_v.matrix);
-            gsl_matrix_sub(&P_t0_v.matrix, &P_pre__Hx_trans__K_trans_v.matrix);   //is P_t0 changed?
+            gsl_matrix_sub(&P_pre_v.matrix, &P_pre__Hx_trans__K_trans_v.matrix);   //is P_t0 changed?
             std::cout << "\n Covariance matrix: \n";
             for (int i = 0; i < 9; ++i)
             {
@@ -347,10 +348,10 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 }
             }
             //updating the predicted covariance (?missing from book?)
-            for(int k = 0; k < 9; ++k)
+            /*for(int k = 0; k < 9; ++k)
             {
                  P_pre[k] = this->P_t0[k];
-            }
+            }*/
 
             // x_t0 = x_pre + K*(z-h)
             double posAdjTmp[3];
@@ -410,9 +411,21 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         this->yPos = x_pre[1] + (sum[1]/posAdjustments.size());
         this->thetaPos = x_pre[2] + (sum[2]/posAdjustments.size());
         normalizeRadian(this->thetaPos);
-        std::cout << "\n " + std::to_string(xPos);
-        std::cout << "\n " + std::to_string(yPos);
-        std::cout << "\n " + std::to_string(thetaPos);
+        std::cout << "\nTheta: " << this->thetaPos << " x: " << this->xPos << " y: " << this->yPos;
+        for(int k = 0; k < 9; ++k)
+        {
+             this->P_t0[k] = P_pre[k];
+        }
+        std::cout << "\n Covariance matrix: \n";
+        for (int i = 0; i < 9; ++i)
+        {
+            std::cout << this->P_t0[i];
+            std::cout << " ";
+            if(i%3 == 2)
+            {
+                std::cout << "\n";
+            }
+        }
     }
     //saving all non-matched lines
     for(auto &lin : extraLines){
