@@ -32,7 +32,8 @@ const std::pair<int, double> simplifyPath::findMaximumDistance(const vector<Poin
   return std::make_pair(index, Mdist);
 }
 
-const std::pair<int, double> simplifyPath::findMaximumDistance(const vector<Point>& Points)const
+const std::pair<int, double> simplifyPath::
+findMaximumDistance(const vector<Point>& Points)const
 {
     Point firstpoint=Points[0];
     Point lastpoint=Points[Points.size()-1];
@@ -58,7 +59,7 @@ const std::pair<int, double> simplifyPath::findMaximumDistance(const vector<Poin
 
 vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<polar_point>& polar_Points)
 {
-   if(polar_Points.size() < 4)
+   if(polar_Points.size() < 2)
   {  //base case 1
 
     /*polar_point temp;
@@ -97,7 +98,7 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
     vector<polar_point> path1(polar_Points.begin(),it+index); //new path l1 from 0 to index
     vector<polar_point> path2(it+index,polar_Points.end()); // new path l2 from index to last
     //split_line.residual_error(polar_Points) > sum_di + 0.5*sum_var || split_line.residual_error(polar_Points) < sum_di - 0.5*sum_var
-    if( t > sum_di + sum_var*1.5 )
+    if( t > sum_di + sum_var*1.5)
     {
     vector<pair<line,vector<polar_point> > > r1 = simplifyWithRDP(path1);
     vector<pair<line,vector<polar_point> > > r2=simplifyWithRDP(path2);
@@ -114,16 +115,9 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
   { //base case 2, all points between are to be removed.
     /*vector<polar_point> r(1,polar_Points[0]);
       r.push_back(polar_Points[polar_Points.size()-1]);*/
-    if(split_line.r < 0) {
-        split_line.r = abs(split_line.r);
-        if(split_line.alfa < 0) {
-            split_line.alfa = PI + split_line.alfa;
-        }
-        else {
-            split_line.alfa = -PI + split_line.alfa;
-        }
-    }
     split_line.C_AR = Covariancia(polar_Points);
+    split_line.lineInterval.push_back(polar_Points[0]);
+    split_line.lineInterval.push_back(polar_Points.back());
     vector< pair<line,vector<polar_point> > > r;
     vector<polar_point> temp_pol(1,polar_Points[0]);
     temp_pol.push_back(polar_Points[polar_Points.size() - 1]);
@@ -131,10 +125,4 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
     return r;
   }
 }
-
-
-
-
-
-
 
