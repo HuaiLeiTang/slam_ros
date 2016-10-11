@@ -20,9 +20,10 @@ Robot::Robot(double x, double y, double theta)
     this->thetaPos = theta;
     this->forwardKin();
     this->inverseKin();
-    this->P_t0[0] = 0.1;
-    this->P_t0[4] = 0.1;
-    this->P_t0[8] = 0.1;
+    gsl_matrix_view P_t0_v = gsl_matrix_view_array(this->P_t0, SLAMSIZE, SLAMSIZE);
+    gsl_matrix_set(&P_t0_v.matrix, 0, 0, 0.1);
+    gsl_matrix_set(&P_t0_v.matrix, 1, 1, 0.1);
+    gsl_matrix_set(&P_t0_v.matrix, 2, 2, 0.1);
     oldLines.reserve(500);
     oldPoints.reserve(500);
 
@@ -68,8 +69,9 @@ void Robot::normalizeRadian(double &rad)
 
 bool Robot::getEllipse(float axii[], float &angle)
 {
-    double data[] = { this->P_t0[0]  , this->P_t0[1],
-                      this->P_t0[3], this->P_t0[4]};
+    gsl_matrix_view Covariance = gsl_matrix_view_array(this->P_t0, SLAMSIZE, SLAMSIZE);
+    double data[] = { gsl_matrix_get(&Covariance.matrix, 0, 0), gsl_matrix_get(&Covariance.matrix, 0, 1),
+                      gsl_matrix_get(&Covariance.matrix, 1, 0), gsl_matrix_get(&Covariance.matrix, 1, 1)};
 
     gsl_matrix_view m = gsl_matrix_view_array(data, 2, 2);
 
@@ -120,10 +122,20 @@ bool Robot::getEllipse(float axii[], float &angle)
 
 void Robot::localize(float *rot, const std::vector<line> &lines)
 {
+    gsl_matrix_view P_t0_v = gsl_matrix_view_array(this->P_t0, SLAMSIZE, SLAMSIZE);
+    double x_t0[] = {this->xPos, this->yPos, this->thetaPos};
 
-    /*double left, right;
-    odometry(left, right);
-    double u_odo[2] = {left, right};*/
+    //delete all saved line data if number of lines reaches towards the maximum of 100
+    //(would be better to eliminate only older half of lines, but mathematically hard to achieve...)
+    if(this->lineCount > 90){
+        for(int i = 2; i < SLAMSIZE; ++i){
+            this->P_t0[i] = 0;
+            for(int j = 2; j < SLAMSIZE; ++j){
+                gsl_matrix_set(&P_t0_v.matrix, i, j, 0);
+            }
+            lineCount = 0;
+        }
+    }
     double u_odo[2];
     u_odo[0] = static_cast<double>(rot[0]);
     u_odo[1] = static_cast<double>(rot[1]);
@@ -131,58 +143,78 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     this->fiToXi(u_odo, u);   //only fully accurate for infinitesimal displacements
 
     //it can be assumed that u[1] (aka the y displacement) is always zero
-    double x_t0[] = {this->xPos, this->yPos, this->thetaPos};
     double x_pre[] = {x_t0[0] + u[0]*cos(x_t0[2]+u[2]/2.0), x_t0[1] + u[0]*sin(x_t0[2]+u[2]/2.0), x_t0[2] + u[2]};   //(possibly better without /2.0-s ?)
+    gsl_matrix_view x_pre_v = gsl_matrix_view_array(x_pre, 3, 1);
+
 
     //P_pre = Fx*P_t0*Fx' + Fu*Q*Fu'
-    // ??? Fx_pre or Fx_t0 ??? dependant on x_t0
-    double Fx_pre[] = {1, 0, -u[0]*sin(u[2]+x_t0[2]),
-                       0, 1, u[0]*cos(u[2]+x_t0[2]),
-                       0, 0, 1
-                      };
-    double Fu_pre[] = {cos(u[2]+x_t0[2]), 0, -u[0]*sin(u[2]+x_t0[2]),
-                       sin(u[2]+x_t0[2]), 0, u[0]*cos(u[2]+x_t0[2]),
-                       0, 0, 1
-                      };
+    double Fx_pre[SLAMSIZE*SLAMSIZE] = {0};
+    gsl_matrix_view Fx_pre_v = gsl_matrix_view_array(Fx_pre, SLAMSIZE, SLAMSIZE);
+    gsl_matrix_set(&Fx_pre_v.matrix, 0, 0, 1);
+    gsl_matrix_set(&Fx_pre_v.matrix, 0, 1, 0);
+    gsl_matrix_set(&Fx_pre_v.matrix, 0, 2, -u[0]*sin(u[2]+x_t0[2]));
+    gsl_matrix_set(&Fx_pre_v.matrix, 1, 0, 0);
+    gsl_matrix_set(&Fx_pre_v.matrix, 1, 1, 1);
+    gsl_matrix_set(&Fx_pre_v.matrix, 1, 2, u[0]*cos(u[2]+x_t0[2]));
+    gsl_matrix_set(&Fx_pre_v.matrix, 2, 0, 0);
+    gsl_matrix_set(&Fx_pre_v.matrix, 2, 1, 0);
+    gsl_matrix_set(&Fx_pre_v.matrix, 2, 2, 1);
+    std::cout << std::endl;
+    for(int i = 0; i < 3; ++i){
+        std::cout << std::endl;
+        for(int j = 0; j < 3; ++j){
+            std::cout << gsl_matrix_get(&Fx_pre_v.matrix, i, j) << " ";
+        }
+    }
+
+    double Fu_pre[SLAMSIZE*3] = {0};
+    gsl_matrix_view Fu_pre_v = gsl_matrix_view_array(Fu_pre, SLAMSIZE, 3);
+    gsl_matrix_set(&Fu_pre_v.matrix, 0, 0, cos(u[2]+x_t0[2]));
+    gsl_matrix_set(&Fu_pre_v.matrix, 0, 1, 0);
+    gsl_matrix_set(&Fu_pre_v.matrix, 0, 2, -u[0]*sin(u[2]+x_t0[2]));
+    gsl_matrix_set(&Fu_pre_v.matrix, 1, 0, sin(u[2]+x_t0[2]));
+    gsl_matrix_set(&Fu_pre_v.matrix, 1, 1, 0);
+    gsl_matrix_set(&Fu_pre_v.matrix, 1, 2, u[0]*cos(u[2]+x_t0[2]));
+    gsl_matrix_set(&Fu_pre_v.matrix, 2, 0, 0);
+    gsl_matrix_set(&Fu_pre_v.matrix, 2, 1, 0);
+    gsl_matrix_set(&Fu_pre_v.matrix, 2, 2, 1);
+
     //temporaries
-    double Fx_pre__P_t0[9] = {0, 0, 0,
-                              0, 0, 0,
-                              0, 0, 0
-                             };
-    double Fu_pre__Q[9] = {0, 0, 0,
-                           0, 0, 0,
-                           0, 0, 0
-                          };
-    double Fu_pre__Q__Fu_pre_trans[9] = {0, 0, 0,
-                                         0, 0, 0,
-                                         0, 0, 0
-                                        };
+    double Fx_pre__P_t0[SLAMSIZE*SLAMSIZE] = {0};
+    gsl_matrix_view Fx_pre__P_t0_v = gsl_matrix_view_array(Fx_pre__P_t0, SLAMSIZE, SLAMSIZE);
+
+    double Fu_pre__Q[SLAMSIZE*3] = {0};
+    gsl_matrix_view Fu_pre__Q_v = gsl_matrix_view_array(Fu_pre__Q, SLAMSIZE, 3);
+
+    double Fu_pre__Q__Fu_pre_trans[SLAMSIZE*SLAMSIZE] = {0};
+    gsl_matrix_view Fu_pre__Q__Fu_pre_trans_v = gsl_matrix_view_array(Fu_pre__Q__Fu_pre_trans, SLAMSIZE, SLAMSIZE);
+
     //constant noise of motion model
     double Q[9] = {std::abs(u[0]*0.05), 0, 0,
                    0, std::abs(u[0]*0.1), 0,
                    0, 0, 0
                   };
+    gsl_matrix_view Q_v = gsl_matrix_view_array(Q, 3, 3);
+
     //predicted covariance matrix
-    double P_pre[9] = {0, 0, 0,
-                       0, 0, 0,
-                       0, 0, 0
-                      };
-    gsl_matrix_view x_pre_v = gsl_matrix_view_array(x_pre, 3, 1);
-    gsl_matrix_view Fx_pre_v = gsl_matrix_view_array(Fx_pre, 3, 3);
+    double P_pre[SLAMSIZE*SLAMSIZE] = {0};
+    gsl_matrix_view P_pre_v = gsl_matrix_view_array(P_pre, SLAMSIZE, SLAMSIZE);
+
+    /*gsl_matrix_view Fx_pre_v = gsl_matrix_view_array(Fx_pre, 3, 3);
     gsl_matrix_view Fu_pre_v = gsl_matrix_view_array(Fu_pre, 3, 3);
     gsl_matrix_view P_t0_v = gsl_matrix_view_array(this->P_t0, 3, 3);
     gsl_matrix_view Fx_pre__P_t0_v = gsl_matrix_view_array(Fx_pre__P_t0, 3, 3);
     gsl_matrix_view Fu_pre__Q_v = gsl_matrix_view_array(Fu_pre__Q, 3, 3);
     gsl_matrix_view Fu_pre__Q__Fu_pre_trans_v = gsl_matrix_view_array(Fu_pre__Q__Fu_pre_trans, 3, 3);
     gsl_matrix_view Q_v = gsl_matrix_view_array(Q, 3, 3);
-    gsl_matrix_view P_pre_v = gsl_matrix_view_array(P_pre, 3, 3);
+    gsl_matrix_view P_pre_v = gsl_matrix_view_array(P_pre, 3, 3);*/
     //gsl_matrix_transpose_memcpy(&Fx_pre_trans_v.matrix, &Fx_pre_v.matrix);
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Fx_pre_v.matrix, &P_t0_v.matrix, 0.0, &Fx_pre__P_t0_v.matrix);
-    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Fx_pre__P_t0_v.matrix, &Fx_pre_v.matrix, 0.0, &P_pre_v.matrix);   //P_pre is not yet P_pre here !!!
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Fu_pre_v.matrix, &Q_v.matrix, 0.0, &Fu_pre__Q_v.matrix);
-    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Fu_pre__Q_v.matrix, &Fu_pre_v.matrix, 0.0, &Fu_pre__Q__Fu_pre_trans_v.matrix);
-    gsl_matrix_add(&P_pre_v.matrix, &Fu_pre__Q__Fu_pre_trans_v.matrix);   //P_pre now ready
-    std::cout << std::endl << "COVARIANCE P_PRE: " << P_pre[0] << " " << P_pre[4] << " " << P_pre[8];
+    std::cout << gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Fx_pre_v.matrix, &P_t0_v.matrix, 0.0, &Fx_pre__P_t0_v.matrix);
+    std::cout << gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Fx_pre__P_t0_v.matrix, &Fx_pre_v.matrix, 0.0, &P_pre_v.matrix);   //P_pre is not yet P_pre here !!!
+    std::cout << gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Fu_pre_v.matrix, &Q_v.matrix, 0.0, &Fu_pre__Q_v.matrix);
+    std::cout << gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Fu_pre__Q_v.matrix, &Fu_pre_v.matrix, 0.0, &Fu_pre__Q__Fu_pre_trans_v.matrix);
+    std::cout << gsl_matrix_add(&P_pre_v.matrix, &Fu_pre__Q__Fu_pre_trans_v.matrix);   //P_pre now ready
+    std::cout << std::endl << "Covariance P_pre: " << P_pre[0] << " " << gsl_matrix_get(&P_pre_v.matrix, 1, 1) << " " << gsl_matrix_get(&P_pre_v.matrix, 2, 2);
 
     matchesNum = 0;
     std::vector<std::array<double, 3> > posAdjustments;          ///< weighted positional adjustments for the predicted position of the robot based on matched lines
@@ -340,18 +372,13 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             std::cout << "\n Covariance matrix: \n";
             for (int i = 0; i < 9; ++i)
             {
-                std::cout << this->P_t0[i];
+                std::cout << P_pre[i];
                 std::cout << " ";
                 if(i%3 == 2)
                 {
                     std::cout << "\n";
                 }
             }
-            //updating the predicted covariance (?missing from book?)
-            /*for(int k = 0; k < 9; ++k)
-            {
-                 P_pre[k] = this->P_t0[k];
-            }*/
 
             // x_t0 = x_pre + K*(z-h)
             double posAdjTmp[3];
@@ -383,18 +410,12 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         this->thetaPos = x_pre[2];
         normalizeRadian(this->thetaPos);
         std::cout << "\nTheta: " << this->thetaPos << " x: " << this->xPos << " y: " << this->yPos;
-        for(int i = 0; i < 9; ++i)
-        {
-            this->P_t0[i] = P_pre[i];
-        }
+        gsl_matrix_memcpy(&P_t0_v.matrix, &P_pre_v.matrix);
         std::cout << "\n Covariance matrix: \n";
-        for (int i = 0; i < 9; ++i)
-        {
-            std::cout << this->P_t0[i];
-            std::cout << " ";
-            if(i%3 == 2)
-            {
-                std::cout << "\n";
+        for(int i = 0; i < 3; ++i){
+            std::cout << std::endl;
+            for(int j = 0; j < 3; ++j){
+                std::cout << gsl_matrix_get(&P_t0_v.matrix ,i, j) << " ";
             }
         }
     }else{                                                      //matched lines were found
@@ -412,18 +433,12 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         this->thetaPos = x_pre[2] + (sum[2]/posAdjustments.size());
         normalizeRadian(this->thetaPos);
         std::cout << "\nTheta: " << this->thetaPos << " x: " << this->xPos << " y: " << this->yPos;
-        for(int k = 0; k < 9; ++k)
-        {
-             this->P_t0[k] = P_pre[k];
-        }
+        gsl_matrix_memcpy(&P_t0_v.matrix, &P_pre_v.matrix);     //???????????
         std::cout << "\n Covariance matrix: \n";
-        for (int i = 0; i < 9; ++i)
-        {
-            std::cout << this->P_t0[i];
-            std::cout << " ";
-            if(i%3 == 2)
-            {
-                std::cout << "\n";
+        for(int i = 0; i < 3; ++i){
+            std::cout << std::endl;
+            for(int j = 0; j < 3; ++j){
+                std::cout << gsl_matrix_get(&P_t0_v.matrix ,i, j) << " ";
             }
         }
     }

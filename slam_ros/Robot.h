@@ -12,13 +12,16 @@ extern "C" {
 #include "extApi.h"
 }
 
+#define SLAMSIZE 203 //saved lines = (SLAMSIZE - 3)/2
+
 class Robot
 {
 private:
-    /// \brief forward kinematics matrix
-    double forKin[6];
-    /// \brief inverse kinematics matrix
-    double invKin[6];
+
+    /// \brief Extended robot state vector
+    double y[SLAMSIZE];              //robot state + 100 lines
+    /// \brief number of lines saved in memory
+    int lineCount;
     /// \brief old polar coordinate points in world reference frame found by the sensors
     std::vector<polar_point> oldPoints;
     /// \brief old polar coordinate lines in world reference frame found by the sensor
@@ -28,11 +31,14 @@ private:
     /// \brief number of line matches found in one SLAM cycle
     int matchesNum;
 
+    /// \brief forward kinematics matrix
+    double forKin[6];
+    /// \brief inverse kinematics matrix
+    double invKin[6];
     /// \brief derives the forward kinamatics matrix from the parameters of the robot
     void forwardKin();
     /// \brief derives the inverse kinematics matrix from the parameters of the robot
     void inverseKin();
-
     /// \brief calculates velocity vector of the robot from the angular velocity of the 2 wheels (using forward kinematics
     void fiToXi(double*, double*);
     /// \brief calculates the angular velocitiy of the 2 wheels from the velocity vector of th robot (using inverse kinematics)
@@ -44,8 +50,9 @@ public:
     double xPos;
     double yPos;
     double thetaPos;
+
     /// \brief Robot covariance matrix
-    double P_t0[9];
+    double P_t0[SLAMSIZE*SLAMSIZE];         //203*203 (100 lines)
 
     Robot(double x, double y, double theta);
     ~Robot();
