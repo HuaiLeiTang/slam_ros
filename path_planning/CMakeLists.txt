@@ -187,3 +187,8 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg)
+include_directories(include ${catkin_INCLUDE_DIRS})
+aux_source_directory(. SRC_LIST)
+add_executable(theseus ${SRC_LIST})
+target_link_libraries(theseus ${catkin_LIBRARIES})

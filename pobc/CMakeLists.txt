@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(obc)
+project(pobc)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -102,7 +102,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES obc
+#  LIBRARIES pobc
 #  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -119,24 +119,24 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(obc
-#   src/${PROJECT_NAME}/obc.cpp
+# add_library(pobc
+#   src/${PROJECT_NAME}/pobc.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(obc ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(pobc ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(obc_node src/obc_node.cpp)
+# add_executable(pobc_node src/pobc_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(obc_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(pobc_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(obc_node
+# target_link_libraries(pobc_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -155,7 +155,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS obc obc_node
+# install(TARGETS pobc pobc_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -180,10 +180,15 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_obc.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_pobc.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg)
+include_directories(include ${catkin_INCLUDE_DIRS})
+aux_source_directory(. SRC_LIST)
+add_executable(testobc ${SRC_LIST})
+target_link_libraries(testobc ${catkin_LIBRARIES})
