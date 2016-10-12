@@ -70,6 +70,7 @@ class line
         vector<Point> line_graf(double x_1,double x_2); // general line points between x_1 ,x_2 interval
         void WriteCov(void);
         vector<polar_point> lineInterval;
+        void SetEndPoints();
     private:
         double b;
         double m;
@@ -88,6 +89,5 @@ public:
 };
 
 #endif
-
 
 

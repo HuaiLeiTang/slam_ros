@@ -41,6 +41,11 @@ vector<Point> line::line_graf(double x_1,double x_2)
     return temp;
 }
 
+void line::SetEndPoints() {
+    this->lineInterval[0].r = r/(cos(lineInterval[0].alfa - this->alfa));
+    this->lineInterval[1].r = r/(cos(lineInterval[1].alfa - this->alfa));
+}
+
 void line::WriteCov(void) {
     double *d = C_AR->data;
     printf("[ %g,%g\n",d[0],d[1]);
@@ -426,8 +431,8 @@ void lineXtracion::Export_polar()
     ofstream output_file;
     output_file.open("p_data.txt");
     for(int i = 0; i < this->Fitlines.size(); i++) {
-        output_file<<Fitlines[i].lineInterval[0].r<<" "<<(Fitlines[i].lineInterval[0].alfa + PI)<<endl;
-        output_file<<Fitlines[i].lineInterval[1].r<<" "<<(Fitlines[i].lineInterval[1].alfa + PI)<<endl;
+        output_file<<Fitlines[i].lineInterval[0].r<<" "<<(Fitlines[i].lineInterval[0].alfa)<<endl;
+        output_file<<Fitlines[i].lineInterval[1].r<<" "<<(Fitlines[i].lineInterval[1].alfa)<<endl;
     }
 }
 
@@ -447,29 +452,60 @@ void lineXtracion::Export_polar_data(void)
     }
 }
 
+int compareDouble (const void * a, const void * b)
+{
+  if ( *(double*)a <  *(double*)b ) return -1;
+  if ( *(double*)a == *(double*)b ) return 0;
+  if ( *(double*)a >  *(double*)b ) return 1;
+}
+
 void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
     int len = pol_points.size() - 1;
     double dist[len];
+    double mediandist[len];
     double max = 0;
+    ofstream distfile;
+    distfile.open("dist.txt");
     for(int i = 0; i < len;i++) {
-        dist[i] = pow(pow(pol_points[i].r,2) + pow(pol_points[i + 1].r,2) - 2*pol_points[i].r*pol_points[i + 1].r*cos(pol_points[i + 1].alfa - pol_points[i].alfa),2);
+        dist[i] = sqrt(pow(pol_points[i].r,2) + pow(pol_points[i + 1].r,2) - 2*pol_points[i].r*pol_points[i + 1].r*cos(pol_points[i + 1].alfa - pol_points[i].alfa));
+        distfile<<dist[i]<<endl;
         if(dist[i] > max) {
             max = dist[i];
         }
     }
+    for(int i = 0; i < len; i++) {
+        mediandist[i] = dist[i];
+    }
+    qsort (mediandist,len,sizeof(double),compareDouble);
+    double median;
+    if(len % 2 == 0) {
+        median = (mediandist[(len - 2)/2] + mediandist[(len - 2)/2 + 1])/2;
+    }
+    else {
+        median = mediandist[(len - 1)/2];
+    }
+    for(int i = 0; i < len; i++) {
+        if(mediandist[i] < median*5) {
+            mediandist[i] = median*5;
+        }
+
+    }
     double sum_di;
     for(int i = 0; i < len; i++) {
-        sum_di = sum_di + dist[i];
+        sum_di = sum_di + mediandist[i];
     }
     double avr = sum_di/len;
+    distfile<<avr<<endl;
     double max_avr = max/avr;
-    if(max_avr > 35) {
+    cout<<"max_avr: "<<max_avr<<endl;
+    if(true) {
         for(int i = 0; i < len; i++) {
             if(dist[i] > avr) {
                 split.push_back(i + 1);
             }
         }
     }
+    cout<<"split num"<<split.size()<<endl;
 }
 
 void LineConversion(vector<line>& lines) {
@@ -477,15 +513,31 @@ void LineConversion(vector<line>& lines) {
         if(lines[i].r == 0) {
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);
+            i--;
             continue;
         }
         if((lines[i].C_AR->data[0] < 0 ) || (lines[i].C_AR->data[3] < 0) ) {
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);
+            i--;
+            continue;
         }
-        if(isnan(lines[i].C_AR->data[0]) || isnan(lines[i].C_AR->data[1]) || isnan(lines[i].C_AR->data[2]) || isnan(lines[i].C_AR->data[3])) {
+        if(  isnan(lines[i].C_AR->data[0])|| isnan(lines[i].C_AR->data[1]) || isnan(lines[i].C_AR->data[2]) || isnan(lines[i].C_AR->data[3])) {
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+        if((lines[i].alfa) == 0 && (lines[i].r == 0)) {
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+        if((lines[i].C_AR->data[0] > 1) || (lines[i].C_AR->data[0] > 1)) {
+            delete lines[i].C_AR;
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
         }
     }
     for(int i = 0; i < lines.size(); i++) {
@@ -553,4 +605,3 @@ vector<line> LineExtraction(vector<polar_point>& pol_points) {
         return get_lines.Fitlines;
     }
 }
-
