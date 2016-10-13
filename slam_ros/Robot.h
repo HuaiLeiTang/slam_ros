@@ -12,16 +12,17 @@ extern "C" {
 #include "extApi.h"
 }
 
-#define SLAMSIZE 203 //saved lines = (SLAMSIZE - 3)/2
+#define LINESIZE 100
+#define SLAMSIZE 203 // = LINESIZE*2+3
 
 class Robot
 {
 private:
 
-    /// \brief Extended robot state vector
-    double y[SLAMSIZE];              //robot state + 100 lines
+    /// \brief stored lines part of the extended robot state vector
+    double y[LINESIZE*2];              //LINESIZE number of lines
     /// \brief number of lines saved in memory
-    int lineCount;
+    int savedLineCount;
     /// \brief old polar coordinate points in world reference frame found by the sensors
     std::vector<polar_point> oldPoints;
     /// \brief old polar coordinate lines in world reference frame found by the sensor
