@@ -2,17 +2,19 @@
 #include <fstream>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
+#include <cmath>
+#include <algorithm>
 
 using namespace std;
 
-line::line()
+line::line():lineInterval()
 {
     alfa = 0;
     r = 0;
     C_AR = NULL;
 }
 
-line::line(double alfa, double r)
+line::line(double alfa, double r): lineInterval()
 {
     this->alfa = alfa*(PI/180);
     this->r = r;
@@ -30,16 +32,18 @@ vector<Point> line::line_graf(double x_1,double x_2)
 {
     vector<Point> temp;
     Point temp_point;
-    double x_i = x_1;
-    double res = 1; // resolusion
-    while( x_i < x_2 )
-    {
-        temp_point.x = x_i;
-        temp_point.y = this->value_y(x_i);
-        temp.push_back(temp_point);
-        x_i = x_i + res;
-    }
+    temp_point.x = x_1;
+    temp_point.y = this->value_y(x_1);
+    temp.push_back(temp_point);
+    temp_point.x = x_2;
+    temp_point.y = this->value_y(x_2);
+    temp.push_back(temp_point);
     return temp;
+}
+
+void line::SetEndPoints() {
+    this->lineInterval[0].r = r/(cos(lineInterval[0].alfa - this->alfa));
+    this->lineInterval[1].r = r/(cos(lineInterval[1].alfa - this->alfa));
 }
 
 void line::WriteCov(void) {
@@ -68,11 +72,12 @@ polar_point::polar_point(double alfa, double r)
     in_line = true;
 }
 
-polar_point::polar_point(double alfa, double r, double weight)
+polar_point::polar_point(double alfa, double r, double variance)
 {
     this->alfa = alfa*(PI/180);
     this->r = r;
-    this->weight = weight;
+    this->weight = 1/pow(variance,2);
+    this->variance = variance;
     in_line = true;
 }
 
@@ -178,12 +183,12 @@ line lineFitting(std::vector<Point>& Points)
 
     double wi = (double)polar_data.size();
 
-    alfa = 0.5*atan2( (2/wi)*sum_1 + (1/wi)*sum_2, (2/wi)*sum_3 +(1/wi)*sum_4 );
+    alfa = 0.5*atan2((2/wi)*sum_1 + (1/wi)*sum_2, (2/wi)*sum_3 +(1/wi)*sum_4);
 
     for(int i = 0;i < polar_data.size();i++)
         sum_r = sum_r + polar_data[i].weight*polar_data[i].r*cos(polar_data[i].alfa - alfa);
 
-    line linefit(alfa*180/PI,sum_r/sum_var);
+    line linefit(alfa*180/PI,abs(sum_r/sum_var));
     return linefit;
 }
 
@@ -223,7 +228,7 @@ line lineFitting(std::vector<polar_point>& polar_data)
         sum_4 = sum_4 + (polar_data[i].weight - wi)*polar_data[i].weight*polar_data[i].r*polar_data[i].r*cos(2*polar_data[i].alfa);
     }
 
-    alfa = 0.5*atan2( (2/wi)*sum_1 + (1/wi)*sum_2, (2/wi)*sum_3 +(1/wi)*sum_4 );
+    alfa = 0.5*atan2( (2/wi)*sum_1 + (1/wi)*sum_2 , (2/wi)*sum_3 +(1/wi)*sum_4 );
 
     for(int i = 0;i < polar_data.size();i++)
         sum_r = sum_r + polar_data[i].weight*polar_data[i].r*cos(polar_data[i].alfa - alfa);
@@ -259,7 +264,7 @@ double Func(double x, void * params)
 	}
 
 }
-/*
+
 gsl_matrix* Covariancia(vector<polar_point> cov_data) {
     gsl_matrix *F_pq = gsl_matrix_alloc(2,(size_t)2*cov_data.size()); // 2*n size Row a
     gsl_matrix *C_x = gsl_matrix_alloc((size_t)2*cov_data.size(),(size_t)2*cov_data.size());
@@ -302,9 +307,9 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data) {
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pg_C_x,F_pq_t,0.0,C_ar);
     ofstream matrix;
     return C_ar;
-}*/
+}
 
-gsl_matrix* Covariancia(vector<polar_point> cov_data)
+/*gsl_matrix* Covariancia(vector<polar_point> cov_data)
 {
     gsl_matrix *F_pq = gsl_matrix_alloc(2,(size_t)2*cov_data.size()); // 2*n size Row a
     gsl_matrix *C_x = gsl_matrix_alloc((size_t)2*cov_data.size(),(size_t)2*cov_data.size());
@@ -313,23 +318,31 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
     gsl_matrix *F_pg_C_x = gsl_matrix_alloc(2,(size_t)2*cov_data.size());
     double repo;
     line alfa_r_Pi_Qi = lineFitting(cov_data);
+    if(alfa_r_Pi_Qi.alfa < 0) {
+        alfa_r_Pi_Qi.alfa += PI;
+    }
     line alfa_r_Pi_Qi_eps;
-    double eps = 0.1;
+    double eps = 0.001;
     double alfa_derivat;
     double r_derivat;
+    double alfa;
     for(int i = 0;i < cov_data.size();i++)
     {
         repo = cov_data[i].r;
         cov_data[i].r = cov_data[i].r + eps;
         alfa_r_Pi_Qi_eps = lineFitting(cov_data);
-        alfa_derivat = (alfa_r_Pi_Qi_eps.alfa - alfa_r_Pi_Qi.alfa)/eps;
+        if(alfa_r_Pi_Qi_eps.alfa  < 0) {
+            alfa = alfa_r_Pi_Qi_eps.alfa + PI;
+        }
+        else {
+            alfa = alfa_r_Pi_Qi_eps.alfa;
+        }
+        alfa_derivat = ( alfa - alfa_r_Pi_Qi.alfa)/eps;
         r_derivat = (alfa_r_Pi_Qi_eps.r - alfa_r_Pi_Qi.r)/eps;
         gsl_matrix_set(F_pq,0,i,alfa_derivat);
         gsl_matrix_set(F_pq,1,i,r_derivat);
         cov_data[i].r = repo;
     }
-
-
     for(int i = 0; i < cov_data.size();i++)
     {
         gsl_matrix_set(C_x,i,i,cov_data[i].variance*cov_data[i].variance);
@@ -341,21 +354,25 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
         repo = cov_data[j].alfa;
         cov_data[j].alfa = cov_data[j].alfa + eps;
         alfa_r_Pi_Qi_eps = lineFitting(cov_data);
-        alfa_derivat = (alfa_r_Pi_Qi_eps.alfa - alfa_r_Pi_Qi.alfa)/eps;
+        if(alfa_r_Pi_Qi_eps.alfa  < 0) {
+            alfa = alfa_r_Pi_Qi_eps.alfa + PI;
+        }
+        else {
+            alfa = alfa_r_Pi_Qi_eps.alfa;
+        }
+        alfa_derivat = (alfa - alfa_r_Pi_Qi.alfa)/eps;
         r_derivat = (alfa_r_Pi_Qi_eps.r - alfa_r_Pi_Qi.r)/eps;
         gsl_matrix_set(F_pq,0,i,alfa_derivat);
         gsl_matrix_set(F_pq,1,i,r_derivat);
         cov_data[j].alfa = repo;
         j++;
     }
-
     gsl_matrix_transpose_memcpy(F_pq_t,F_pq);
 
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pq,C_x,0.0,F_pg_C_x);//F_pq*C_x
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pg_C_x,F_pq_t,0.0,C_ar);
-    ofstream matrix;
     return C_ar;
-}
+}*/
 /*_____________Line Extracion_______________*/
 
 
@@ -413,14 +430,9 @@ void lineXtracion::Export_polar()
 {
     ofstream output_file;
     output_file.open("p_data.txt");
-    double t_alfa;
-    for(int i = 0; i < fit_pol_points.size();i++)
-    {
-        if( fit_pol_points[i].alfa < 0)
-            t_alfa = 2*PI + fit_pol_points[i].alfa;
-        else
-            t_alfa = fit_pol_points[i].alfa;
-        output_file<<fit_pol_points[i].r<<","<<t_alfa<<endl;
+    for(int i = 0; i < this->Fitlines.size(); i++) {
+        output_file<<Fitlines[i].lineInterval[0].r<<" "<<(Fitlines[i].lineInterval[0].alfa)<<endl;
+        output_file<<Fitlines[i].lineInterval[1].r<<" "<<(Fitlines[i].lineInterval[1].alfa)<<endl;
     }
 }
 
@@ -431,6 +443,7 @@ void lineXtracion::Export_polar_data(void)
     double t_alfa;
     for(int i = 0; i < this->pol_data.size();i++)
     {
+        pol_data[i].alfa += PI;
         if( pol_data[i].alfa < 0)
             t_alfa = 2*PI + pol_data[i].alfa;
         else
@@ -439,26 +452,102 @@ void lineXtracion::Export_polar_data(void)
     }
 }
 
+int compareDouble (const void * a, const void * b)
+{
+  if ( *(double*)a <  *(double*)b ) return -1;
+  if ( *(double*)a == *(double*)b ) return 0;
+  if ( *(double*)a >  *(double*)b ) return 1;
+}
+
 void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
     int len = pol_points.size() - 1;
     double dist[len];
+    double mediandist[len];
     double max = 0;
+    ofstream distfile;
+    distfile.open("dist.txt");
     for(int i = 0; i < len;i++) {
-        dist[i] = pow(pow(pol_points[i].r,2) + pow(pol_points[i + 1].r,2) - 2*pol_points[i].r*pol_points[i + 1].r*cos(pol_points[i + 1].alfa - pol_points[i].alfa),2);
+        dist[i] = sqrt(pow(pol_points[i].r,2) + pow(pol_points[i + 1].r,2) - 2*pol_points[i].r*pol_points[i + 1].r*cos(pol_points[i + 1].alfa - pol_points[i].alfa));
+        distfile<<dist[i]<<endl;
         if(dist[i] > max) {
             max = dist[i];
         }
     }
+    for(int i = 0; i < len; i++) {
+        mediandist[i] = dist[i];
+    }
+    qsort (mediandist,len,sizeof(double),compareDouble);
+    double median;
+    if(len % 2 == 0) {
+        median = (mediandist[(len - 2)/2] + mediandist[(len - 2)/2 + 1])/2;
+    }
+    else {
+        median = mediandist[(len - 1)/2];
+    }
+    for(int i = 0; i < len; i++) {
+        if(mediandist[i] < median*5) {
+            mediandist[i] = median*5;
+        }
+
+    }
     double sum_di;
     for(int i = 0; i < len; i++) {
-        sum_di = sum_di + dist[i];
+        sum_di = sum_di + mediandist[i];
     }
     double avr = sum_di/len;
+    distfile<<avr<<endl;
     double max_avr = max/avr;
-    if(max_avr > 35) {
+    cout<<"max_avr: "<<max_avr<<endl;
+    if(true) {
         for(int i = 0; i < len; i++) {
             if(dist[i] > avr) {
                 split.push_back(i + 1);
+            }
+        }
+    }
+    cout<<"split num"<<split.size()<<endl;
+}
+
+void LineConversion(vector<line>& lines) {
+   for(int i = 0; i < lines.size(); i++) {
+        if(lines[i].r == 0) {
+            delete lines[i].C_AR;
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+        if((lines[i].C_AR->data[0] < 0 ) || (lines[i].C_AR->data[3] < 0) ) {
+            delete lines[i].C_AR;
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+        if(  isnan(lines[i].C_AR->data[0])|| isnan(lines[i].C_AR->data[1]) || isnan(lines[i].C_AR->data[2]) || isnan(lines[i].C_AR->data[3])) {
+            delete lines[i].C_AR;
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+        if((lines[i].alfa) == 0 && (lines[i].r == 0)) {
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+        if((lines[i].C_AR->data[0] > 1) || (lines[i].C_AR->data[0] > 1)) {
+            delete lines[i].C_AR;
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
+    }
+    for(int i = 0; i < lines.size(); i++) {
+        if(lines[i].r < 0) {
+            lines[i].r = abs(lines[i].r);
+            if(lines[i].alfa < 0) {
+                lines[i].alfa = PI + lines[i].alfa;
+            }
+            else {
+                lines[i].alfa = -PI + lines[i].alfa;
             }
         }
     }
@@ -492,6 +581,8 @@ vector<line> LineExtraction(vector<polar_point>& pol_points) {
                 plot.fit_pol_points.insert(plot.fit_pol_points.begin(),get_lines[i].fit_pol_points.begin(),get_lines[i].fit_pol_points.end());
                 plot.pol_data.insert(plot.pol_data.begin(), get_lines[i].pol_data.begin(), get_lines[i].pol_data.end());
             }
+            LineConversion(lines);
+            plot.Fitlines = lines;
             plot.Export_polar();
             plot.Export_polar_data();
             return lines;
@@ -499,14 +590,16 @@ vector<line> LineExtraction(vector<polar_point>& pol_points) {
         else {
             lineXtracion get_lines(pol_points);
             get_lines.Extract();
+            LineConversion(get_lines.Fitlines);
             get_lines.Export_polar();
-            get_lines.Export_polar_data();
+            get_lines.Export_polar_data();            
             return get_lines.Fitlines;
         }
     }
     else {
         lineXtracion get_lines(pol_points);
         get_lines.Extract();
+        LineConversion(get_lines.Fitlines);
         get_lines.Export_polar();
         get_lines.Export_polar_data();
         return get_lines.Fitlines;
