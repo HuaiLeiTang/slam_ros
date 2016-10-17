@@ -34,24 +34,32 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     points.clear();
     lines.clear();
     polar_point temp;
-    std::cout << "\n point count:" << msg.layout.dim[0].size/2;
-    for(int i = 0; i < (msg.layout.dim[0].size/2); i+=2){
+    std::cout << "\n\npoint count:" << msg.layout.dim[0].size/2;
+
+    //saving points with gaussian noise
+    std::default_random_engine generator;
+    std::normal_distribution<double> distribution(0.0,0.03);        //3cm standard deviation
+    for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
-        points[points.size()-1].alfa = msg.data[i+1];
-        points[points.size()-1].r = msg.data[i]*100;
-        //points[points.size()-1].variance = 1.0;
+        points[points.size()-1].alfa = msg.data[i+1] - M_PI;
+        //points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
+        points[points.size()-1].r = msg.data[i] + distribution(generator);
+        points[points.size()-1].variance = 0.1;
+        //points[points.size()-1].weight = 1;
         std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
     }
     std::cout << "\nstarting line extraction";
-    //lines = LineExtraction(points);       //not working
-    lineXtracion get_lines(points);
-    get_lines.Extract();
+    lines = LineExtraction(points);
+    for(auto &lin : lines){
+        lin.alfa += M_PI;
+        lin.alfa = lin.alfa > M_PI ? lin.alfa-2.0*M_PI : lin.alfa;
+    }
     std::cout << "\nline extraction finished";
     std::cout << "\nresults: ";
-    for(int i = 0; i < get_lines.Fitlines.size(); ++i){
-        std::cout << "\n" << get_lines.Fitlines[i].r << " " << get_lines.Fitlines[i].alfa;
+    for(int i = 0; i < lines.size(); ++i){
+        std::cout << "\n" << lines[i].alfa << " " << lines[i].r;
     }
-    if(get_lines.Fitlines.empty()){
+    if(lines.empty()){
         std::cout << "\nno lines found";
     }
     std::cout << std::endl;
@@ -70,6 +78,8 @@ int main(int argc,char* argv[])
 	ros::init(argc2, argv2, "slam");
 
     Robot* rover = new Robot(0, 0, 0);
+    lines.reserve(20);
+    points.reserve(250);
     /*Vrep* vrep = new Vrep(argc, argv);
 
     if(vrep->error != NO_ERROR)
@@ -78,7 +88,6 @@ int main(int argc,char* argv[])
     }
     vrep->loop(rover);
     delete vrep;*/
-    lines.reserve(10);
     /*lines.push_back(line(0.0, 4.0));
     lines.push_back(line(M_PI/M_PI*182.0, 6.2));
     rot[0] = 10*M_PI; rot[1] = 10*M_PI;
@@ -105,6 +114,7 @@ int main(int argc,char* argv[])
         if(update){
             update = false;
             rover->localize(rot, lines);
+            lines.clear();
 
             msg.translation.x = rover->xPos;
             msg.translation.y = rover->yPos;
@@ -113,15 +123,15 @@ int main(int argc,char* argv[])
             float axii[2];
             float angle;
             if(rover->getEllipse(axii, angle)){
-                std::cout << "\n bigaxis: " << axii[0];
-                std::cout << "\n smallaxis: " << axii[1];
+                std::cout << "\n majoraxis: " << axii[1];
+                std::cout << "\n minoraxis: " << axii[0];
                 std::cout << "\n angle: " << angle;
                 std::cout << "\n";
             }else{
                 std::cout <<"main: An error occured while computing the eigenvalues and vectors";
             }
-            msg.rotation.x = axii[0];
-            msg.rotation.y = axii[1];
+            msg.rotation.x = axii[1];
+            msg.rotation.y = axii[0];
             msg.rotation.z = angle;
             pubCov.publish(msg);
         }

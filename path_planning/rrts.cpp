@@ -8,6 +8,7 @@
 #include <time.h>
 #include <fstream>
 #include "dijkstra.h"
+#include "lineFitting.h"
 
 #define PI 3.141592
 
@@ -34,14 +35,31 @@ public:
     }
 
     ~graph() {
-        delete matrix;
+        for(int i = 0; i < v; i++) {
+            delete [] matrix[i];
+        }
+        delete [] matrix;
     }
 };
 
 Obstacle::Obstacle(double x, double y): x(x), y(y) {
+    type = pointObstacle;
 }
 
 Obstacle::Obstacle(): x(), y(){
+    type = pointObstacle;
+}
+
+void Obstacle::Draw(ofstream& out) {
+    out<<x<<" "<<y<<endl;
+}
+
+Vec2 Obstacle::FirstPoint() {
+    return Vec2();
+}
+
+Vec2 Obstacle::EndPoint() {
+    return Vec2();
 }
 
 void Obstacle::CircVecDist(Node* random, Node graf) {
@@ -114,19 +132,249 @@ bool Obstacle::IsCollision(Node inGraf, Node *randNode,bool edit) {
     }
 }
 
+StraightObstacle::StraightObstacle():firstPoint(), endPoint() {
+    type = lineObstacle;
+}
 
-RRTs::RRTs(std::vector<std::pair<double,double> > map,Node firstNode ,double maxX, double maxY): maxMapSizeX(maxX),
+StraightObstacle::StraightObstacle(Vec2 firstPoint, Vec2 endpoint) {
+    this->firstPoint = firstPoint;
+    this->endPoint = endpoint;
+    type = lineObstacle;
+    Vec2 EF = endpoint - firstPoint;
+    Vec2 EF_norm = EF.Norm();
+    Vec2 FE_nrom = EF_norm*(-1);
+    Vec2 UF = EF_norm;
+    UF.RoundPoz90();
+    Vec2 DF = EF_norm;
+    DF.RoundMinusz90();
+    Vec2 UE = FE_nrom;
+    UE.RoundMinusz90();
+    Vec2 DE = FE_nrom;
+    DE.RoundPoz90();
+    this->firstUp = firstPoint + UF*r + FE_nrom*r;
+    this->firstDown = firstPoint + DF*r + FE_nrom*r;
+    this->endUp = endPoint + UE*r + EF_norm*r;
+    this->endDown = endPoint + DE*r + EF_norm*r;
+}
+
+StraightObstacle::StraightObstacle(polar_point firstPoint, polar_point endPoint) {
+    vector<Point> tempPoints;
+    vector<polar_point> tempPolars;
+    tempPolars.push_back(firstPoint);
+    tempPolars.push_back(endPoint);
+    tempPoints = polar2descart(tempPolars);
+    Vec2 f(tempPoints[0].x*100, tempPoints[0].y*100);
+    Vec2 e(tempPoints[1].x*100, tempPoints[1].y*100);
+    this->firstPoint = f;
+    this->endPoint = e;
+    type = lineObstacle;
+    Vec2 EF = this->endPoint - this->firstPoint;
+    Vec2 EF_norm = EF.Norm();
+    Vec2 FE_nrom = EF_norm*(-1);
+    Vec2 UF = EF_norm;
+    UF.RoundPoz90();
+    Vec2 DF = EF_norm;
+    DF.RoundMinusz90();
+    Vec2 UE = FE_nrom;
+    UE.RoundMinusz90();
+    Vec2 DE = FE_nrom;
+    DE.RoundPoz90();
+    this->firstUp = this->firstPoint + UF*r + FE_nrom*r;
+    this->firstDown = this->firstPoint + DF*r + FE_nrom*r;
+    this->endUp = this->endPoint + UE*r + EF_norm*r;
+    this->endDown = this->endPoint + DE*r + EF_norm*r;
+}
+
+
+Vec2 StraightObstacle::FirstPoint() {
+    return firstPoint;
+}
+
+Vec2 StraightObstacle::EndPoint() {
+    return endPoint;
+}
+
+Vec2 StraightObstacle::FirstUp() {
+    return firstUp;
+}
+
+Vec2 StraightObstacle::FirstDown() {
+    return firstDown;
+}
+
+Vec2 StraightObstacle::EndUp() {
+    return endUp;
+}
+
+Vec2 StraightObstacle::EndDown() {
+    return endDown;
+}
+
+void StraightObstacle::Draw(ofstream &out) {
+    out<<firstPoint<<endl;
+    out<<endPoint<<endl;
+}
+
+bool StraightObstacle::Between(Vec2 m) {
+    double downX;
+    double upX;
+    double downY;
+    double upY;
+    if(firstPoint.x >= endPoint.x) {
+        upX = firstPoint.x;
+        downX = endPoint.x;
+    }
+    else {
+        upX = endPoint.x;
+        downX = firstPoint.x;
+    }
+
+    if(firstPoint.y >= endPoint.y) {
+        upY = firstPoint.y;
+        downY = endPoint.y;
+    }
+    else {
+        upY = endPoint.y;
+        downY = firstPoint.y;
+    }
+    bool xval;
+    bool yval;
+    if( ( m.x>= downX ) && ( m.x <= upX)) {
+            xval = true;
+    }
+    else {
+        return false;
+    }
+    if( (m.y >= downY) && (m.y <= upY) ) {
+        yval = true;
+    }
+    else {
+        return false;
+    }
+    return (xval && yval);
+}
+
+bool NodeBetween(Vec2 a, Vec2 b, Vec2 m) {
+    double upX;
+    double downX;
+    double upY;
+    double downY;
+    if(a.x >= b.x) {
+        upX = a.x;
+        downX = b.x;
+    }
+    else {
+        upX = b.x;
+        downX = a.x;
+    }
+
+    if(a.y >= b.y) {
+        upY = a.y;
+        downY = b.y;
+    }
+    else {
+        upY = b.y;
+        downY = a.y;
+    }
+    bool xval;
+    bool yval;
+    if((m.x >= (downX-0.1)) && ( m.x <= (upX + 0.1))) {
+            xval = true;
+    }
+    else {
+        return false;
+    }
+
+    if( (m.y >= (downY - 0.1)) && (m.y <= (upY + 0.1)) ) {
+        yval = true;
+    }
+    else {
+        return false;
+    }
+    return (xval && yval);
+}
+
+Vec2 IntersectionPoint(Vec2 a, Vec2 b, Vec2 c, Vec2 d) {
+    Vec2 n_1;
+    Vec2 n_2;
+    n_2 = c - d;
+    n_1 = a - b;
+    n_1.Merolegese();
+    n_2.Merolegese();
+    double A[4];
+    A[0] = n_1.x; // |0 2|
+    A[1] = n_2.x; // |1 3|
+    A[2] = n_1.y;
+    A[3] = n_2.y;
+    double B[2];
+    B[0] = n_1.x*a.x + n_1.y*a.y;
+    B[1] = n_2.x*c.x + n_2.y*c.y;
+    double det =1/(A[0]*A[3] - A[2]*A[1]);
+    double A_inv[4];
+    A_inv[0] = det*A[3];
+    A_inv[3] = det*A[0];
+    A_inv[1] = det*-A[1];
+    A_inv[2] = det*-A[2];
+    Vec2 m;
+    m.x = A_inv[0]*B[0] + A_inv[2]*B[1];
+    m.y = A_inv[1]*B[0] + A_inv[3]*B[1];
+    return m;
+}
+
+bool StraightObstacle::IsCollision(Node inGraf, Node *randNode, bool edit) {
+    Vec2 G(inGraf);
+    Vec2 R(*randNode);
+    vector<Vec2> metszesek;
+    Vec2 m;
+    m = IntersectionPoint(firstDown,firstUp,G,R);
+    if(NodeBetween(G,R,m) && NodeBetween(firstDown,firstUp,m)) {
+        metszesek.push_back(m);
+    }
+    m = IntersectionPoint(firstUp, endUp, G, R);
+    if(NodeBetween(G,R,m) && NodeBetween(firstUp,endUp,m)) {
+        metszesek.push_back(m);
+    }
+    m = IntersectionPoint(endUp,endDown,G,R);
+    if(NodeBetween(G,R,m) && NodeBetween(endUp,endDown,m)) {
+        metszesek.push_back(m);
+    }
+    m = IntersectionPoint(endDown, firstDown,G,R);
+    if( NodeBetween(G,R,m) && NodeBetween(endDown,firstDown,m)) {
+        metszesek.push_back(m);
+    }
+    if(metszesek.size() == 0) {
+        return false;
+    }
+    else {
+        if(!edit) {
+            return true;
+        }
+    }
+    if(edit) {
+        double minDist;
+        double tempDist;
+        Vec2 minVec;
+        minDist = Distance(metszesek[0],G);
+        minVec = metszesek[0];
+        for(int i = 1; i < metszesek.size(); i++) {
+            tempDist = Distance(metszesek[i],G);
+            if(tempDist < minDist) {
+                minVec = metszesek[i];
+            }
+        }
+        randNode->x = minVec.x;
+        randNode->y = minVec.y;
+        return true;
+    }
+
+}
+
+RRTs::RRTs(std::vector<AncientObstacle*> map,Node firstNode ,double maxX, double maxY): maxMapSizeX(maxX),
     maxMapSizeY(maxY), graf(), path(), reducedPath(), sendPath(), dijkPath() {
-    this->map = map;
-    Obstacle temp;
+    obstacles = map;
     Node* first = new Node[1];
     *first = firstNode;
     graf.push_back(first);
-    for(int i = 0; i < map.size(); i++) {
-        temp.x = map[i].first;
-        temp.y = map[i].second;
-        obstacles.push_back(temp);
-    }
     srand (time(NULL));
 }
 
@@ -194,48 +442,15 @@ void RRTs::PathPlaning(Node goal) {
         }
         randNode->parent = closestNode;
         for(int i = 0; i < obstacles.size(); i++) {
-            if(obstacles[i].IsCollision(*closestNode,randNode)) {
+            if(obstacles[i]->IsCollision(*closestNode,randNode)) {
             }
         }
         InsertToGraf(randNode);
     }while( !((randNode->x == goal.x) && (randNode->y == goal.y)));
-
     Node* iter = randNode;
-
     while(iter != NULL){
         path.push_back(iter);
         iter = iter->parent;
-    }
-    Node *tempbegin;
-    reducedPath.push_back(*path[0]);
-    std::vector<Node*>::iterator begin = path.begin();
-    std::vector<Node*>::iterator front = begin + 1;
-    std::vector<Node*>::iterator good = begin + 1;
-    bool crash = false;
-    while(good != (path.end() - 1)) {
-        for(begin; front != path.end(); front++) {
-            tempbegin = *begin;
-            for(int i = 0; i < obstacles.size(); i++) {
-                if(obstacles[i].IsCollision(*tempbegin,*front,false)) {
-                    crash = true;
-                    break;
-                }
-            }
-            if(!crash) {
-                good = front;
-            }
-            crash = false;
-        }
-        begin = good;
-        front = begin + 1;
-        reducedPath.push_back(**good);
-    }
-
-    Vec2 *tempVec;
-    for(int i = reducedPath.size() - 1; i > 0; i--) {
-        tempVec = new Vec2(reducedPath[i - 1],reducedPath[i]);
-        sendPath.push_back(*tempVec);
-        delete tempVec;
     }
     /*-----Dijkstra path search-----*/
     graph g(path.size());
@@ -244,7 +459,7 @@ void RRTs::PathPlaning(Node goal) {
     for(int i = 0; i < path.size() - 1; i++) {
         for(int j = i + 1; j < path.size(); j++) {
             for(int k = 0; k < obstacles.size(); k++) {
-                if( obstacles[k].IsCollision(*path[i],path[j],false) ) {
+                if( obstacles[k]->IsCollision(*path[i],path[j],false) ) {
                     collide = true;
                     break;
                 }
@@ -266,6 +481,7 @@ void RRTs::PathPlaning(Node goal) {
 void RRTs::ExportGraf() {
      ofstream myfile;
      ofstream mapfile;
+     ofstream linefile;
      ofstream pathfile;
      ofstream reducedPathfile;
      ofstream sendPathfile;
@@ -274,6 +490,7 @@ void RRTs::ExportGraf() {
      myfile.open("/home/mono/path/graf.txt");
      mapfile.open("/home/mono/path/map.txt");
      pathfile.open("/home/mono/path/path.txt");
+     linefile.open("/home/mono/path/line.txt");
      reducedPathfile.open("/home/mono/path/reducedpath.txt");
      sendPathfile.open("/home/mono/path/sendpath.txt");
      for(int i = 0; i < graf.size(); i++) {
@@ -282,8 +499,13 @@ void RRTs::ExportGraf() {
                  myfile<<graf[i]->childern[j]->x<<" "<<graf[i]->childern[j]->y<<endl;
              }
      }
-     for(int i = 0; i < map.size(); i++) {
-         mapfile<<map[i].first<<" "<<map[i].second<<endl;
+     for(int i = 0; i < obstacles.size(); i++) {
+         if(obstacles[i]->type == pointObstacle) {
+            obstacles[i]->Draw(mapfile);
+         }
+         if(obstacles[i]->type == lineObstacle) {
+             obstacles[i]->Draw(linefile);
+         }
      }
      for(int i = 0; i < path.size(); i++) {
          pathfile<<path[i]->x<<" "<<path[i]->y<<endl;

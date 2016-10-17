@@ -37,7 +37,13 @@ Vec2 Vec2::operator *(double scalar) {
 }
 
 double Vec2::Lenght() {
-    return sqrt(pow(x,2) + pow(y,2));
+    double temp = pow(x,2) + pow(y,2);
+    if(temp > 0) {
+        return sqrt(pow(x,2) + pow(y,2));
+    }
+    else {
+        return 0;
+    }
 }
 
 Vec2 Vec2::Norm() {
@@ -52,6 +58,26 @@ void Vec2::Print(void) {
 
 double Vec2::operator*(Vec2 other) {
     return this->x*other.x + this->y-other.y;
+}
+
+void Vec2::Merolegese() {
+    double t = x;
+    x = -y;
+    y = t;
+}
+
+void Vec2::RoundMinusz90() {
+    double t = x;
+    x = y;
+    y = t;
+    y = -y;
+}
+
+void Vec2::RoundPoz90() {
+    double t = x;
+    x = y;
+    y = t;
+    x = -x;
 }
 
 double SubtendedAngle(Vec2 a, Vec2 b, Vec2 c) {
@@ -76,3 +102,21 @@ double SubtendedCos(Vec2 a, Vec2 b, Vec2 c) {
     }
     return g;
 }
+
+double SkalarCos(Vec2 a, Vec2 b) {
+    double skal = a.x*b.x + a.y*b.y;
+    double r = skal/(a.Lenght()*b.Lenght());
+    return r;
+}
+
+double Distance(Vec2 a, Vec2 b) {
+    Vec2 t = a - b;
+    return t.Lenght();
+}
+
+std::ostream& operator<<(std::ostream& os,const Vec2 a)
+{
+    os<<a.x<<" "<<a.y<<" ";
+    return os;
+}
+
