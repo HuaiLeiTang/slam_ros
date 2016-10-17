@@ -139,6 +139,21 @@ std::vector<polar_point> descart2polar(std::vector<Point>& Points)
     return temp_vect;
 }
 
+polar_point descart2polar(Point Points)
+{
+    polar_point temp_point;
+    temp_point.r = sqrt( Points.x*Points.x + Points.y*Points.y );
+    temp_point.alfa = atan2(Points.y,Points.x);
+    return temp_point;
+}
+
+polar_point descart2polar(Vec2 Points) {
+    polar_point temp_point;
+    temp_point.r = sqrt( Points.x*Points.x + Points.y*Points.y );
+    temp_point.alfa = atan2(Points.y,Points.x);
+    return temp_point;
+}
+
 std::vector<Point> polar2descart(std::vector<polar_point>& polar_Points)
 {
     std:vector<Point> temp_vect;
@@ -152,6 +167,14 @@ std::vector<Point> polar2descart(std::vector<polar_point>& polar_Points)
     return temp_vect;
 }
 
+Point polar2descart(polar_point polar_Points)
+{
+    Point temp_point;
+    temp_point.x = cos(polar_Points.alfa)*polar_Points.r;
+    temp_point.y = sin(polar_Points.alfa)*polar_Points.r;
+    return temp_point;
+}
+
 void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Point>& points)
 {
     Point temp_point;
@@ -160,7 +183,6 @@ void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Point>& p
         temp_point.x = cos(polar_Points[i].alfa)*polar_Points[i].r;
         temp_point.y = sin(polar_Points[i].alfa)*polar_Points[i].r;
         points.push_back(temp_point);
-        cout<<"polar2 descart: "<<points[points.size() - 1].x<<" "<<points[points.size() - 1].y<<endl;
     }
 }
 

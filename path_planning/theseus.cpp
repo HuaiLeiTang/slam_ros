@@ -111,10 +111,12 @@ for(int i = 0; i < test.dijkPath.size(); i++) {
 }
 cout<<"Publish..."<<endl;
 gmap.DrawObstacle(test.obstacles);
-gmap.DrawCircle();
+gmap.DrawCircle(Vec2(2,2),3);
+//gmap.DrawArc(200,Vec2(0,2),Vec2(2,0),KNOWN,false);
+cout<<"eddig oké vagoyk"<<endl;
 gmap.PublishMap();
 
-thesues_pub.publish(path);
-    ros::spinOnce();
+//thesues_pub.publish(path);
+//    ros::spinOnce();
 return 0;
 }

@@ -91,12 +91,10 @@ void GridMap::SetGrid(Vec2 grid, int value) {
 std::vector<int*> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
     Vec2 kvantF = Vec2Quantization(firstPoint);
     Vec2 kvantE = Vec2Quantization(endPoint);
-    cout<<kvantE<< " kvant "<<kvantF<<endl;
-    cout<<"sdf"<< (kvantF != kvantE) <<endl;
-    cout<<"wtf"<< (kvantF != kvantE || ((data[MapIndex(kvantF)] != OCCUPANCY) && stoppable))<<endl;
     Vec2 compass;
     while(true) {
         SetGrid(kvantF,value);
+        cout<<"kvantF: "<<kvantF<<endl;
         compass = kvantE - kvantF;
         compass = Vec2QBaseVector(compass);
         kvantF = kvantF + compass;
@@ -134,40 +132,97 @@ void GridMap::DrawObstacle(std::vector<AncientObstacle *> obstacles) {
 
 std::vector<int*> GridMap::DrawArc(double radius, Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
     Vec2 rpose(pose.x,pose.y);
-    double rad = SubtendedAngle(rpose,firstPoint,endPoint);
-    int num = ceil((rad/resolution)*radius);
+    Vec2 first;
+    Vec2 end;
+    first = firstPoint - rpose;
+    end = endPoint - rpose;
+    double deltaFi = atan2(end.y, end.x) - atan2(first.y,first.x);
+    if(deltaFi > PI) {
+        deltaFi = deltaFi - 2*PI;
+    }
+    if(deltaFi < 0) {
+        Vec2 temp;
+        temp = first;
+        first = end;
+        end = temp;
+    }
+    double rad = abs(deltaFi);
+    cout<<"rad"<<rad<<endl;
+    //int num = ceil((rad/resolution)*senser*10);
+    //double dfi = rad/num;
+    vector<polar_point> circ;
+    vector<Point> descartcirc;
+    Point g;
+    g.x = first.x;
+    g.y = first.y;
+    cout<<"mia  faszom"<<g.x<<" "<<g.y<<endl;
+    polar_point iter = descart2polar(g);
+    double base = iter.alfa;
+    int num = ceil((rad/resolution)*senser*20);
     double dfi = rad/num;
-    vector<polar_point> temppolar;
-    temppolar.resize(num + 1);
-    vector<int*> ret;
-    return ret;
-
-}
-
-void GridMap::DrawCircle() {
-    Vec2 rpose(pose.x,pose.y);
-    int num = ceil((2*PI/resolution)*senser*10);
-    double dfi = 2*PI/num;
-    polar_point iter;
     iter.alfa = 0;
     iter.r = senser;
-    vector<polar_point> circ;
     for(int i = 0; i < num + 1; i++) {
-        iter.alfa = dfi* (double)i;
+        iter.alfa = base + dfi*(double)i;
         iter.alfa = iter.alfa > M_PI ? iter.alfa-2.0*M_PI : iter.alfa;
         circ.push_back(iter);
     }
-    cout<<"circ generate"<<endl;
-    vector<Point> descartcirc;
     polar2descart(circ,descartcirc);
-    cout<<"asdasdasd"<<descartcirc[num].x<<endl;
     Vec2 t;
     for(int i = 0; i < num + 1; i++) {
         t.x = descartcirc[i].x;
         t.y = descartcirc[i].y;
         t = t + rpose;
-        cout<<"line "<<i<<endl;
-        cout<<"t: "<<t<<" rpose: "<<rpose<<endl;
+        DrawLine(rpose,t,KNOWN,true);
+    }
+
+}
+
+void GridMap::DrawCircle() {
+    Vec2 rpose(pose.x,pose.y);
+    int num = ceil((PI*0.2/resolution)*senser*20);
+    double dfi = PI*0.2/num;
+    polar_point iter;
+    iter.alfa = 0;
+    iter.r = senser;
+    vector<polar_point> circ;
+    for(int i = 0; i < num + 1; i++) {
+        iter.alfa = PI/4 + dfi*(double)i;
+        iter.alfa = iter.alfa > M_PI ? iter.alfa-2.0*M_PI : iter.alfa;
+        circ.push_back(iter);
+    }
+    vector<Point> descartcirc;
+    polar2descart(circ,descartcirc);
+    Vec2 t;
+    for(int i = 0; i < num + 1; i++) {
+        t.x = descartcirc[i].x;
+        t.y = descartcirc[i].y;
+        t = t + rpose;
+        DrawLine(rpose,t,KNOWN,true);
+    }
+}
+
+void GridMap::DrawCircle(Vec2 start, double rad) {
+    Vec2 rpose(pose.x,pose.y);
+    int num = ceil((rad/resolution)*senser*20);
+    double dfi = rad/num;
+    polar_point iter = descart2polar(start);
+    double base = iter.alfa;
+    iter.alfa = 0;
+    iter.r = senser;
+    vector<polar_point> circ;
+    for(int i = 0; i < num + 1; i++) {
+        iter.alfa = base + dfi*(double)i;
+        iter.alfa = iter.alfa > M_PI ? iter.alfa-2.0*M_PI : iter.alfa;
+        circ.push_back(iter);
+    }
+    vector<Point> descartcirc;
+    polar2descart(circ,descartcirc);
+    Vec2 t;
+    for(int i = 0; i < num + 1; i++) {
+        t.x = descartcirc[i].x;
+        t.y = descartcirc[i].y;
+        t = t + rpose;
         DrawLine(rpose,t,KNOWN,true);
     }
 }

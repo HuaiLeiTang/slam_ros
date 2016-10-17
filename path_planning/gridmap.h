@@ -44,6 +44,7 @@ public:
     Vec2 Vec2Quantization(Vec2 q);
     Vec2 Vec2QBaseVector(Vec2 qb);
     int MapIndex(Vec2 index);
+    void DrawCircle(Vec2 start, double rad);
     static constexpr double r = 10;
     static constexpr double senser = 300;
 };
