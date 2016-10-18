@@ -44,7 +44,10 @@ public:
     Vec2 Vec2Quantization(Vec2 q);
     Vec2 Vec2QBaseVector(Vec2 qb);
     int MapIndex(Vec2 index);
-    void DrawCircle(Vec2 start, double rad);
+    void DrawCircle(Vec2 start, double radius,double rad, int value, bool stoppable);
+    void UpgradeKnownGrid(std::vector<AncientObstacle *> &obstacles);
+    void UpgradeTargets(std::vector<AncientObstacle *> &obstacles);
+    std::pair<Vec2,Vec2> ClosestFirst(AncientObstacle * obstacle);
     static constexpr double r = 10;
     static constexpr double senser = 300;
 };

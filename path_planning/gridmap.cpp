@@ -94,7 +94,6 @@ std::vector<int*> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, b
     Vec2 compass;
     while(true) {
         SetGrid(kvantF,value);
-        cout<<"kvantF: "<<kvantF<<endl;
         compass = kvantE - kvantF;
         compass = Vec2QBaseVector(compass);
         kvantF = kvantF + compass;
@@ -136,9 +135,14 @@ std::vector<int*> GridMap::DrawArc(double radius, Vec2 firstPoint, Vec2 endPoint
     Vec2 end;
     first = firstPoint - rpose;
     end = endPoint - rpose;
-    double deltaFi = atan2(end.y, end.x) - atan2(first.y,first.x);
-    if(deltaFi > PI) {
-        deltaFi = deltaFi - 2*PI;
+    double deltaFi = (atan2(end.y, end.x) - atan2(first.y,first.x));
+    if(abs(deltaFi) > PI) {
+        if(deltaFi < 0) {
+            deltaFi = 2*PI + deltaFi;
+        }
+        else {
+            deltaFi = deltaFi - 2*PI;
+        }
     }
     if(deltaFi < 0) {
         Vec2 temp;
@@ -146,45 +150,21 @@ std::vector<int*> GridMap::DrawArc(double radius, Vec2 firstPoint, Vec2 endPoint
         first = end;
         end = temp;
     }
+    cout<<"first "<<first<<endl;
+    cout<<"rad "<<deltaFi*180/PI<<endl;
     double rad = abs(deltaFi);
-    cout<<"rad"<<rad<<endl;
-    //int num = ceil((rad/resolution)*senser*10);
-    //double dfi = rad/num;
-    vector<polar_point> circ;
-    vector<Point> descartcirc;
-    Point g;
-    g.x = first.x;
-    g.y = first.y;
-    cout<<"mia  faszom"<<g.x<<" "<<g.y<<endl;
-    polar_point iter = descart2polar(g);
-    double base = iter.alfa;
-    int num = ceil((rad/resolution)*senser*20);
-    double dfi = rad/num;
-    iter.alfa = 0;
-    iter.r = senser;
-    for(int i = 0; i < num + 1; i++) {
-        iter.alfa = base + dfi*(double)i;
-        iter.alfa = iter.alfa > M_PI ? iter.alfa-2.0*M_PI : iter.alfa;
-        circ.push_back(iter);
-    }
-    polar2descart(circ,descartcirc);
-    Vec2 t;
-    for(int i = 0; i < num + 1; i++) {
-        t.x = descartcirc[i].x;
-        t.y = descartcirc[i].y;
-        t = t + rpose;
-        DrawLine(rpose,t,KNOWN,true);
-    }
-
+    DrawCircle(first,radius,rad,value,stoppable);
+    vector<int*> ret;
+    return ret;
 }
 
 void GridMap::DrawCircle() {
     Vec2 rpose(pose.x,pose.y);
-    int num = ceil((PI*0.2/resolution)*senser*20);
-    double dfi = PI*0.2/num;
+    int num = ceil((PI*2/resolution)*senser*40);
+    double dfi = PI*2/num;
     polar_point iter;
     iter.alfa = 0;
-    iter.r = senser;
+    iter.r = senser/3;
     vector<polar_point> circ;
     for(int i = 0; i < num + 1; i++) {
         iter.alfa = PI/4 + dfi*(double)i;
@@ -202,14 +182,14 @@ void GridMap::DrawCircle() {
     }
 }
 
-void GridMap::DrawCircle(Vec2 start, double rad) {
+void GridMap::DrawCircle(Vec2 start, double radius, double rad, int value, bool stoppable) {
     Vec2 rpose(pose.x,pose.y);
-    int num = ceil((rad/resolution)*senser*20);
+    int num = ceil((rad/resolution)*senser*40);
     double dfi = rad/num;
     polar_point iter = descart2polar(start);
     double base = iter.alfa;
     iter.alfa = 0;
-    iter.r = senser;
+    iter.r = radius;
     vector<polar_point> circ;
     for(int i = 0; i < num + 1; i++) {
         iter.alfa = base + dfi*(double)i;
@@ -223,6 +203,143 @@ void GridMap::DrawCircle(Vec2 start, double rad) {
         t.x = descartcirc[i].x;
         t.y = descartcirc[i].y;
         t = t + rpose;
-        DrawLine(rpose,t,KNOWN,true);
+        DrawLine(rpose,t,value,stoppable);
+    }
+}
+
+void GridMap::UpgradeKnownGrid(std::vector<AncientObstacle *>& obstacles) {
+    Vec2 rpose(pose.x,pose.y);
+    DrawCircle();
+    for(int i = 0; i < obstacles.size(); i++) {
+        if(Distance(rpose,obstacles[i]->FirstUp()) < Distance(rpose,obstacles[i]->FirstDown())) {
+            DrawArc(senser,obstacles[i]->FirstUp(),obstacles[i]->EndUp(),KNOWN,true);
+        }
+        else {
+            DrawArc(senser,obstacles[i]->FirstDown(),obstacles[i]->EndDown(),KNOWN,true);
+        }
+    }
+}
+
+std::pair<Vec2,Vec2> GridMap::ClosestFirst(AncientObstacle * obstacle) {
+    Vec2 rpose(pose.x,pose.y);
+    Vec2 first;
+    Vec2 end;
+    Point temp;
+    std::pair<Vec2,Vec2> ret;
+    if(Distance(rpose,obstacle->FirstUp()) < Distance(rpose,obstacle->FirstDown())) {
+        first = obstacle->FirstUp();
+        end = obstacle->EndUp();
+    }
+    else {
+        first = obstacle->FirstDown();
+        end = obstacle->EndDown();
+    }
+    first = first;
+    end = end;
+    double deltaFi = atan2(end.y, end.x) - atan2(first.y,first.x);
+    if(abs(deltaFi) > PI) {
+        if(deltaFi < 0) {
+            deltaFi = 2*PI + deltaFi;
+        }
+        else {
+            deltaFi = deltaFi - 2*PI;
+        }
+    }
+    if(deltaFi < 0) {
+        Vec2 temp;
+        temp = first;
+        first = end;
+        end = temp;
+    }
+    ret.first = first;
+    ret.second = end;
+    return ret;
+}
+
+void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
+    Vec2 rpose(pose.x,pose.y);
+    Vec2 first;
+    Vec2 nextfirst;
+    Vec2 previousEnd;
+    Vec2 end;
+    Vec2 start;
+    Vec2 goal;
+    Point temp;
+    Vec2 fe;
+    std::pair<Vec2,Vec2> inter;
+    polar_point targetStart;
+    for(int i = 0; i < obstacles.size(); i++) {
+        inter = ClosestFirst(obstacles[i]);
+        first = inter.first;
+        end = inter.second;
+        start = end - first;
+        if(i + 1 == obstacles.size()) {
+            inter = ClosestFirst(obstacles[0]);
+        }
+        else {
+            inter = ClosestFirst(obstacles[i + 1]);
+        }
+        nextfirst = inter.first;
+        goal = nextfirst - end;
+        pose.x = end.x;
+        pose.y = end.y;
+     /*   fe = first - end;
+        targetStart = descart2polar(fe);
+        cout<<"alfa start: "<<targetStart.alfa*180/PI <<endl;
+        targetStart.alfa = targetStart.alfa - 30*PI/180;
+        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa -2.0*M_PI : targetStart.alfa;
+        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
+        cout<<"alfa start uj : "<<targetStart.alfa*180/PI <<endl;
+        temp = polar2descart(targetStart);
+        start.x = temp.x;
+        start.y = temp.y;
+        cout<<"alfa "<<targetStart.alfa*180/PI <<endl;
+        targetStart.alfa = targetStart.alfa - 100*PI/180;
+        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa - 2.0*M_PI : targetStart.alfa;
+        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
+        cout<<"alfa uj "<<targetStart.alfa*180/PI<<endl;
+        temp = polar2descart(targetStart);
+        goal.x = temp.x;
+        goal.y = temp.y;*/
+        DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        pose.x = rpose.x;
+        pose.y = rpose.y;
+    }
+
+    for(int i = 0; i < obstacles.size(); i++) {
+        inter = ClosestFirst(obstacles[i]);
+        first = inter.first;
+        end = inter.second;
+        start = end - first;
+        if(i - 1 < 0) {
+            inter = ClosestFirst(obstacles[obstacles.size() - 1]);
+        }
+        else {
+            inter = ClosestFirst(obstacles[i - 1]);
+        }
+        previousEnd = inter.second;
+        pose.x = first.x;
+        pose.y = first.y;
+     /*   fe = first - end;
+        targetStart = descart2polar(fe);
+        cout<<"alfa start: "<<targetStart.alfa*180/PI <<endl;
+        targetStart.alfa = targetStart.alfa - 30*PI/180;
+        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa -2.0*M_PI : targetStart.alfa;
+        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
+        cout<<"alfa start uj : "<<targetStart.alfa*180/PI <<endl;
+        temp = polar2descart(targetStart);
+        start.x = temp.x;
+        start.y = temp.y;
+        cout<<"alfa "<<targetStart.alfa*180/PI <<endl;
+        targetStart.alfa = targetStart.alfa - 100*PI/180;
+        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa - 2.0*M_PI : targetStart.alfa;
+        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
+        cout<<"alfa uj "<<targetStart.alfa*180/PI<<endl;
+        temp = polar2descart(targetStart);
+        goal.x = temp.x;
+        goal.y = temp.y;*/
+        DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        pose.x = rpose.x;
+        pose.y = rpose.y;
     }
 }

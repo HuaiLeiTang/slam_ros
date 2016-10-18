@@ -110,10 +110,13 @@ for(int i = 0; i < test.dijkPath.size(); i++) {
     path.data.insert(path.data.begin(),test.dijkPath[i].y);
 }
 cout<<"Publish..."<<endl;
+cout<<test.obstacles[2]->FirstUp()<<" "<<test.obstacles[2]->EndUp()<<endl;
 gmap.DrawObstacle(test.obstacles);
-gmap.DrawCircle(Vec2(2,2),3);
-//gmap.DrawArc(200,Vec2(0,2),Vec2(2,0),KNOWN,false);
-cout<<"eddig oké vagoyk"<<endl;
+//gmap.DrawCircle(Vec2(2,2),1.57,KNOWN,true);
+
+//gmap.DrawArc(200,test.obstacles[2]->FirstPoint(),test.obstacles[2]->EndPoint(),KNOWN,true);
+gmap.UpgradeKnownGrid(test.obstacles);
+gmap.UpgradeTargets(test.obstacles);
 gmap.PublishMap();
 
 //thesues_pub.publish(path);
