@@ -11,6 +11,12 @@
 
 using namespace std;
 
+std::vector<Vec2> lineIntervals;
+std::vector<AncientObstacle*> robstacles;
+bool newlines = false;
+bool newpose = false;
+double theta;
+Vec2 pose;
 
 vector< AncientObstacle* >  LineMapGenerator(void) {
     vector<double> alfa;
@@ -90,36 +96,56 @@ vector< AncientObstacle* >  LineMapGenerator(void) {
     return obstacles;
 }
 
+void lines_cb(const std_msgs::Float32MultiArray::ConstPtr& array) {
+    for(std::vector<float>::const_iterator it = array->data.begin(); it != array->data.end(); it = it + 4)
+    {
+        lineIntervals.push_back(Vec2(*(it)*100,*(it + 1)*100));
+        lineIntervals.push_back(Vec2(*(it + 2)*100,*(it + 3)*100));
+    }
+    AncientObstacle* newobs;
+    for(int i = 0; i < lineIntervals.size(); i = i + 2) {
+        newobs = new StraightObstacle(lineIntervals[i],lineIntervals[i + 1]);
+        robstacles.push_back(newobs);
+    }
+    newlines = true;
+    return;
+}
+
+void pose_cb(geometry_msgs::Vector3 msg) {
+    pose.x = msg.x;
+    pose.y = msg.y;
+    theta = msg.z;
+    newpose = true;
+}
+
 int main(int argc, char **argv)
 {
 ros::init(argc, argv, "theseus");
 ros::NodeHandle n;
-GridMap gmap(15,50,&n);
+GridMap gmap(15,200,&n);
 ros::Publisher thesues_pub = n.advertise<std_msgs::Float32MultiArray>("path", 1000);
+ros::Subscriber sublines = n.subscribe<std_msgs::Float32MultiArray>("lines",100,lines_cb);
+ros::Subscriber subpose = n.subscribe<geometry_msgs::Vector3>("robotPose",100,pose_cb);
 std_msgs::Float32MultiArray path;
 Node firstNode(0,0);
 Node goal(400,200);
 firstNode.partOf = true;
 RRTs test(LineMapGenerator(),firstNode,500,500);
-test.PathPlaning(goal);
+/*test.PathPlaning(goal);
 test.ExportGraf();
-cout<<test.dijkPath.size()<<endl;
-for(int i = 0; i < test.dijkPath.size(); i++) {
-    cout<<test.dijkPath[i].x<<" "<<test.dijkPath[i].y<<endl;
-    path.data.insert(path.data.begin(),test.dijkPath[i].x);
-    path.data.insert(path.data.begin(),test.dijkPath[i].y);
+*/
+ros::Rate s(10);
+while(ros::ok) {
+    if((newlines == true) && (newpose == true)) {
+        gmap.DrawObstacle(robstacles);
+        gmap.PublishMap();
+        newlines = false;
+        newpose = false;
+        robstacles.clear();
+        cout<<"drawing"<<endl;
+    }
+    s.sleep();
+    ros::spinOnce();
 }
-cout<<"Publish..."<<endl;
-cout<<test.obstacles[2]->FirstUp()<<" "<<test.obstacles[2]->EndUp()<<endl;
-gmap.DrawObstacle(test.obstacles);
-//gmap.DrawCircle(Vec2(2,2),1.57,KNOWN,true);
-
-//gmap.DrawArc(200,test.obstacles[2]->FirstPoint(),test.obstacles[2]->EndPoint(),KNOWN,true);
-gmap.UpgradeKnownGrid(test.obstacles);
-gmap.UpgradeTargets(test.obstacles);
-gmap.PublishMap();
-
-//thesues_pub.publish(path);
-//    ros::spinOnce();
 return 0;
 }

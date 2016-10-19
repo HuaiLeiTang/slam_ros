@@ -88,12 +88,14 @@ void GridMap::SetGrid(Vec2 grid, int value) {
     data[MapIndex(grid)] = value;
 }
 
-std::vector<int*> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
+std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
     Vec2 kvantF = Vec2Quantization(firstPoint);
     Vec2 kvantE = Vec2Quantization(endPoint);
     Vec2 compass;
+    vector<int> buf;
     while(true) {
         SetGrid(kvantF,value);
+        buf.push_back(MapIndex(kvantF));
         compass = kvantE - kvantF;
         compass = Vec2QBaseVector(compass);
         kvantF = kvantF + compass;
@@ -104,7 +106,6 @@ std::vector<int*> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, b
             break;
         }
     }
-    vector<int*> buf;
     return buf;
 }
 
@@ -182,8 +183,10 @@ void GridMap::DrawCircle() {
     }
 }
 
-void GridMap::DrawCircle(Vec2 start, double radius, double rad, int value, bool stoppable) {
+std::vector<int> GridMap::DrawCircle(Vec2 start, double radius, double rad, int value, bool stoppable) {
     Vec2 rpose(pose.x,pose.y);
+    std::vector<int> ret;
+    std::vector<int> tempBuf;
     int num = ceil((rad/resolution)*senser*40);
     double dfi = rad/num;
     polar_point iter = descart2polar(start);
@@ -203,9 +206,12 @@ void GridMap::DrawCircle(Vec2 start, double radius, double rad, int value, bool 
         t.x = descartcirc[i].x;
         t.y = descartcirc[i].y;
         t = t + rpose;
-        DrawLine(rpose,t,value,stoppable);
+        tempBuf = DrawLine(rpose,t,value,stoppable);
+        ret.insert(ret.end(),tempBuf.begin(),tempBuf.end());
     }
+    return ret;
 }
+
 
 void GridMap::UpgradeKnownGrid(std::vector<AncientObstacle *>& obstacles) {
     Vec2 rpose(pose.x,pose.y);
@@ -260,13 +266,17 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
     Vec2 rpose(pose.x,pose.y);
     Vec2 first;
     Vec2 nextfirst;
+    Vec2 nextend;
     Vec2 previousEnd;
     Vec2 end;
     Vec2 start;
     Vec2 goal;
     Point temp;
     Vec2 fe;
+    Vec2 ef;
+    Vec2 nef;
     std::pair<Vec2,Vec2> inter;
+    std::vector<int> tempBuf;
     polar_point targetStart;
     for(int i = 0; i < obstacles.size(); i++) {
         inter = ClosestFirst(obstacles[i]);
@@ -280,32 +290,33 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
             inter = ClosestFirst(obstacles[i + 1]);
         }
         nextfirst = inter.first;
+        nextend = inter.second;
+        ef = end -first;;
+        nef = nextend - nextfirst;
+        if( Distance(end,nextfirst) <= r ) {
+            double deltaFi = (atan2(ef.y, ef.x) - atan2(nef.y,nef.x));
+            if(abs(deltaFi) > PI) {
+                if(deltaFi < 0) {
+                    deltaFi = 2*PI + deltaFi;
+                }
+                else {
+                    deltaFi = deltaFi - 2*PI;
+                }
+                if(deltaFi > 0) {
+                    continue;
+                }
+            }
+        }
         goal = nextfirst - end;
         pose.x = end.x;
         pose.y = end.y;
-     /*   fe = first - end;
-        targetStart = descart2polar(fe);
-        cout<<"alfa start: "<<targetStart.alfa*180/PI <<endl;
-        targetStart.alfa = targetStart.alfa - 30*PI/180;
-        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa -2.0*M_PI : targetStart.alfa;
-        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
-        cout<<"alfa start uj : "<<targetStart.alfa*180/PI <<endl;
-        temp = polar2descart(targetStart);
-        start.x = temp.x;
-        start.y = temp.y;
-        cout<<"alfa "<<targetStart.alfa*180/PI <<endl;
-        targetStart.alfa = targetStart.alfa - 100*PI/180;
-        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa - 2.0*M_PI : targetStart.alfa;
-        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
-        cout<<"alfa uj "<<targetStart.alfa*180/PI<<endl;
-        temp = polar2descart(targetStart);
-        goal.x = temp.x;
-        goal.y = temp.y;*/
-        DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        tempBuf = DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;
     }
-
+    Vec2 previousFirst;
+    Vec2 pfe;
     for(int i = 0; i < obstacles.size(); i++) {
         inter = ClosestFirst(obstacles[i]);
         first = inter.first;
@@ -318,28 +329,81 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
             inter = ClosestFirst(obstacles[i - 1]);
         }
         previousEnd = inter.second;
+        previousFirst = inter.first;
+        ef = end - first;
+        pfe = previousFirst - previousEnd;
+        if(Distance(first,previousEnd) < r) {
+            double deltaFi = (atan2(ef.y, ef.x) - atan2(pfe.y,pfe.x));
+            if(abs(deltaFi) > PI) {
+                if(deltaFi < 0) {
+                    deltaFi = 2*PI + deltaFi;
+                }
+                else {
+                    deltaFi = deltaFi - 2*PI;
+                }
+                if(deltaFi > 0) {
+                    continue;
+                }
+            }
+        }
         pose.x = first.x;
         pose.y = first.y;
-     /*   fe = first - end;
-        targetStart = descart2polar(fe);
-        cout<<"alfa start: "<<targetStart.alfa*180/PI <<endl;
-        targetStart.alfa = targetStart.alfa - 30*PI/180;
-        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa -2.0*M_PI : targetStart.alfa;
-        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
-        cout<<"alfa start uj : "<<targetStart.alfa*180/PI <<endl;
-        temp = polar2descart(targetStart);
-        start.x = temp.x;
-        start.y = temp.y;
-        cout<<"alfa "<<targetStart.alfa*180/PI <<endl;
-        targetStart.alfa = targetStart.alfa - 100*PI/180;
-        targetStart.alfa = targetStart.alfa > M_PI ? targetStart.alfa - 2.0*M_PI : targetStart.alfa;
-        targetStart.alfa = targetStart.alfa < -M_PI ? targetStart.alfa + 2.0*M_PI : targetStart.alfa;
-        cout<<"alfa uj "<<targetStart.alfa*180/PI<<endl;
-        temp = polar2descart(targetStart);
-        goal.x = temp.x;
-        goal.y = temp.y;*/
-        DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        tempBuf = DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;
     }
+        for(int i = 0; i < targets.size(); i++) {
+            for(int j = 0; j < targets[i].size(); j++) {
+                if (data[targets[i][j]] == KNOWN) {
+                    targets[i].erase(targets[i].begin() + j);
+                    j--;
+                }
+            }
+        }
+}
+
+Vec2 GridMap::MapIndexInverse(int index) {
+    Vec2 eredmeny;
+    int t = 0;
+    eredmeny.x = index + t*mapWidth;
+    eredmeny.y = 0;
+    while( !(((eredmeny.x >= 0) && (eredmeny.x <= mapWidth)) && ((eredmeny.y >= 0) && (eredmeny.y <= mapWidth)))) {
+        t--;
+        eredmeny.x = index + t*mapWidth;
+        eredmeny.y = 0 - t;
+    }
+    eredmeny = eredmeny - offset;
+    eredmeny.x = (eredmeny.x + 0.5)*resolution;
+    eredmeny.y = (eredmeny.y + 0.5)*resolution;
+    return eredmeny;
+}
+
+Vec2 GridMap::NextGoal() {
+   double minDist = mapWidth*2*resolution;
+   double minTemp;
+   Vec2 minVec;
+   Vec2 tempVec;
+   int targethalmaz;
+   Vec2 rpose(pose.x,pose.y);
+   if(targets.size() == 0 ) {
+       return Vec2(minDist,minDist);
+   }
+   for(int i = 0; i < targets.size(); i++) {
+       for(int j = 0; j < targets[i].size(); j++) {
+           tempVec = MapIndexInverse(targets[i][j]);
+           minTemp = Distance(rpose,tempVec);
+           if(minTemp < minDist) {
+                minDist = minTemp;
+                minVec = tempVec;
+                targethalmaz = i;
+           }
+       }
+   }
+   for(int j = 0; j < targets[targethalmaz].size(); j++) {
+       data[targets[targethalmaz][j]] = KNOWN;
+   }
+   targets.erase(targets.begin() + targethalmaz);
+   SetGrid(Vec2Quantization(minVec),OCCUPANCY);
+   return minVec;
 }

@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
-project(path_planning)
+project(lineprovider)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED)
-find_package(catkin REQUIRED COMPONENTS std_msgs geometry_msgs roscpp nav_msgs)
+find_package(catkin REQUIRED COMPONENTS std_msgs geometry_msgs roscpp)
 
 #listing compiler features
 message("Your C++ compiler supports these C++ features:")
