@@ -306,8 +306,8 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     for(int i = 0; i < lines.size(); ++i){
         std::cout << "\n LOOP 1";
 
-        double R[4] = {0.2, 0,
-                       0, 0.2
+        double R[4] = {0.1, 0,
+                       0, 0.1
                       };
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
@@ -346,7 +346,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             //double Hl[4] = {1.0, 0,
             //                x_pre[0]*sin(m[0]) - x_pre[1]*cos(m[0]), 1.0};
 
-            //S = H*P_pre*H' ( + R )
+
             double Hx[LINESIZE*2*SLAMSIZE];
             gsl_matrix_view Hx_v = gsl_matrix_view_array(Hx, LINESIZE*2, SLAMSIZE);
             for(int k = 0; k < (savedLineCount*2); k+=2){
@@ -366,13 +366,26 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 }
 
             }
-            std::cout << "\n Measurement Jacobian full: \n";
-            for(int i = 0; i < 13; ++i){
-                std::cout << std::endl;
-                for(int j = 0; j < 13; ++j){
-                    std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&Hx_v.matrix, i, j) << " ";
-                }
-            }
+
+            //S = H*P_pre*H' ( + R )
+
+            //creating new [Hx 0 ... 0 Hl 0 ... 0]
+            double Hx_small[2*SLAMSIZE] = {0};
+            gsl_matrix_view Hx_small_v = gsl_matrix_view_array(Hx_small, 2, SLAMSIZE);
+
+            gsl_matrix_set(&Hx_small_v.matrix, 0, 0, 0);
+            gsl_matrix_set(&Hx_small_v.matrix, 0, 1, 0);
+            gsl_matrix_set(&Hx_small_v.matrix, 0, 2, -1.0);           //-1 ? +1 ????????????????????????
+            gsl_matrix_set(&Hx_small_v.matrix, 1, 0, -cos(this->y[j*2+3]));
+            gsl_matrix_set(&Hx_small_v.matrix, 1, 1, -sin(this->y[j*2+3]));
+            gsl_matrix_set(&Hx_small_v.matrix, 1, 2, 0);
+
+            gsl_matrix_set(&Hx_small_v.matrix, 0, 3+j*2, 1.0);
+            gsl_matrix_set(&Hx_small_v.matrix, 0, 3+j*2+1, 0);
+            gsl_matrix_set(&Hx_small_v.matrix, 1, 3+j*2, x_pre[0]*sin(this->y[3+j*2])- x_pre[1]*cos(this->y[3+j*2]));
+            gsl_matrix_set(&Hx_small_v.matrix, 1, 3+j*2+1, 1.0);
+
+
 
             /*double Hx[LINESIZE*2*SLAMSIZE] = {0, 0, -1.0,        //-1 ? +1 ????????????????????????
                                     -cos(m[0]), -sin(m[0]), 0
@@ -381,17 +394,21 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             /*double Hx__P_pre[6] = {0, 0, 0,
                                            0, 0, 0
                                           };*/
-            double Hx__P_pre[LINESIZE*2*SLAMSIZE] = {0};
-            gsl_matrix_view Hx__P_pre_v = gsl_matrix_view_array(Hx__P_pre, LINESIZE*2, SLAMSIZE);
+            double Hx__P_pre[2*SLAMSIZE] = {0};
+            gsl_matrix_view Hx__P_pre_v = gsl_matrix_view_array(Hx__P_pre, 2, SLAMSIZE);
 
-            double S[LINESIZE*2*LINESIZE*2] = {0};
-            gsl_matrix_view S_v = gsl_matrix_view_array(S, LINESIZE*2, LINESIZE*2);
+            double S[2*2] = {0};
+            gsl_matrix_view S_v = gsl_matrix_view_array(S, 2, 2);
 
-            errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Hx_v.matrix, &P_pre_v.matrix, 0.0, &Hx__P_pre_v.matrix));
+            errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Hx_small_v.matrix, &P_pre_v.matrix, 0.0, &Hx__P_pre_v.matrix));
             if(errorCodes.back() != 0){
                 std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
             }
-            errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Hx__P_pre_v.matrix, &Hx_v.matrix, 0.0, &S_v.matrix));
+            errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Hx__P_pre_v.matrix, &Hx_small_v.matrix, 0.0, &S_v.matrix));
+            if(errorCodes.back() != 0){
+                std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+            }
+            errorCodes.push_back(gsl_matrix_add(&S_v.matrix, &R_v.matrix));   //S_v ready
             if(errorCodes.back() != 0){
                 std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
             }
@@ -417,33 +434,16 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             std::cout<< "\n Robot::localize: old line positions in robot ref frame: " << h[0] << "  " << h[1];
 
 
-            //creating new [Hx 0 ... 0 Hl 0 ... 0]
-            double Hx_small[2*SLAMSIZE] = {0};
-            gsl_matrix_view Hx_small_v = gsl_matrix_view_array(Hx_small, 2, SLAMSIZE);
-
-            gsl_matrix_set(&Hx_small_v.matrix, 0, 0, 0);
-            gsl_matrix_set(&Hx_small_v.matrix, 0, 1, 0);
-            gsl_matrix_set(&Hx_small_v.matrix, 0, 2, -1.0);           //-1 ? +1 ????????????????????????
-            gsl_matrix_set(&Hx_small_v.matrix, 1, 0, -cos(this->y[j*2+3]));
-            gsl_matrix_set(&Hx_small_v.matrix, 1, 1, -sin(this->y[j*2+3]));
-            gsl_matrix_set(&Hx_small_v.matrix, 1, 2, 0);
-
-            gsl_matrix_set(&Hx_small_v.matrix, 0, 3+j*2, 1.0);
-            gsl_matrix_set(&Hx_small_v.matrix, 0, 3+j*2+1, 0);
-            gsl_matrix_set(&Hx_small_v.matrix, 1, 3+j*2, x_pre[0]*sin(this->y[3+j*2])- x_pre[1]*cos(this->y[3+j*2]));
-            gsl_matrix_set(&Hx_small_v.matrix, 1, 3+j*2+1, 1.0);
-
             double S_copy[4] = {0};
             gsl_matrix_view S_copy_v = gsl_matrix_view_array(S_copy, 2, 2);
-            gsl_matrix_view tmp_v = gsl_matrix_submatrix(&S_v.matrix, j*2, j*2, 2, 2);
-            errorCodes.push_back(gsl_matrix_memcpy(&S_copy_v.matrix, &tmp_v.matrix));
+            errorCodes.push_back(gsl_matrix_memcpy(&S_copy_v.matrix, &S_v.matrix));
             if(errorCodes.back() != 0){
                 std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
             }
-            errorCodes.push_back(gsl_matrix_add(&S_copy_v.matrix, &R_v.matrix));   //S_v ready
+            /*errorCodes.push_back(gsl_matrix_add(&S_copy_v.matrix, &R_v.matrix));   //S_v ready
             if(errorCodes.back() != 0){
                 std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-            }
+            }*/
 
             //inv(S)
             double S_inv[4] = {0, 0,
@@ -465,7 +465,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             // v_trans*inv(S)*v <= g^2          MAHALANOBIS
             double v_trans__S_inv[2] = {0, 0};
             double v_trans__S_inv__v[1] = {0};
-            double g_2 = 0.1;                                 //Mahalanobis distance constant goes here
+            double g_2 = 0.05;                                 //Mahalanobis distance constant goes here
             gsl_matrix_view v_trans__S_inv_v = gsl_matrix_view_array(v_trans__S_inv, 1, 2);
             gsl_matrix_view v_trans__S_inv__v_v = gsl_matrix_view_array(v_trans__S_inv__v, 1, 1);
             errorCodes.push_back(gsl_matrix_sub(&z_v.matrix, &h_v.matrix));   //z used as temporary for innovation vector, possible vector optimaztion
@@ -545,23 +545,21 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 
                 //double S_copy[4] = {0};
                 //gsl_matrix_view S_copy_v = gsl_matrix_view_array(S_copy, 2, 2);
-                gsl_matrix_view tmp_v = gsl_matrix_submatrix(&S_v.matrix, j*2, j*2, 2, 2);
-                errorCodes.push_back(gsl_matrix_memcpy(&S_copy_v.matrix, &tmp_v.matrix));
+                errorCodes.push_back(gsl_matrix_memcpy(&S_copy_v.matrix, &S_v.matrix));
                 if(errorCodes.back() != 0){
                     std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
                 }
-                errorCodes.push_back(gsl_matrix_add(&S_copy_v.matrix, &R_v.matrix));   //S_v ready
-                if(errorCodes.back() != 0){
-                    std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-                }
+
                 //------------------- S_copy_v ready
 
 
-                //updating with delta
-                double delta[LINESIZE*2] = {0};
+                //updating delta
+                /*double delta[LINESIZE*2] = {0};
                 gsl_matrix_view delta_v = gsl_matrix_view_array(delta, LINESIZE*2, 1);
                 delta[j*2] = z[0];
-                delta[j*2+1] = z[1];
+                delta[j*2+1] = z[1];*/
+                double delta[LINESIZE*2] = {z[0], z[1]};
+                gsl_matrix_view delta_v = gsl_matrix_view_array(delta, 2, 1);
                 //-------------------
 
 
@@ -603,6 +601,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 if(errorCodes.back() != 0){
                     std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
                 }
+
                 //---------------------
 
                 normalizeRadian(this->y[2]);  //noramlizing theta
@@ -614,6 +613,15 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 x_pre[2] = y[2];
 
                 std::cout << "\nTheta: " << this->y[2] << " x: " << this->y[0] << " y: " << this->y[1];
+
+                //debug
+                std::cout << "\n Measurement Jacobian full: \n";
+                for(int i = 0; i < 2; ++i){
+                    std::cout << std::endl;
+                    for(int j = 0; j < 13; ++j){
+                        std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&Hx_v.matrix, i, j) << " ";
+                    }
+                }
 
                 //debug
                 std::cout << "\n Innovation Covariance:";
@@ -634,7 +642,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 }
                 //debug
                 std::cout << "\n delta:";
-                for(int i = 0; i < 20; ++i){
+                for(int i = 0; i < 4; ++i){
                     std::cout << std::endl;
                     for(int j = 0; j < 1; ++j){
                         std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&delta_v.matrix ,i, j) << " ";
@@ -669,71 +677,6 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             errorCodes.push_back(gsl_matrix_memcpy(&tmp_v.matrix, &inf_v.matrix));
             if(errorCodes.back() != 0){
                 std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-            }
-        }
-    }*/
-
-    //FULLMATRIX METHOD <---- mathematically incorrect
-    /*if(lines.size() != 0 && matchesNum != 0)         //no matches found, or no lines received
-    {
-        //inv(S)
-        double S_small[savedLineCount*2*savedLineCount*2] = {0};
-        gsl_matrix_view S_small_v = gsl_matrix_view_array(S_small, savedLineCount*2, savedLineCount*2);
-        gsl_matrix_view S_small_sub_v = gsl_matrix_submatrix(&S_v.matrix, 0, 0, savedLineCount*2, savedLineCount*2);
-        errorCodes.push_back(gsl_matrix_memcpy(&S_small_v.matrix, &S_small_sub_v.matrix));
-                if(errorCodes.back() != 0){
-            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-        }
-
-        double S_inv[LINESIZE*2*LINESIZE*2] = {0};
-        gsl_matrix_view S_inv_v = gsl_matrix_view_array(S_inv, LINESIZE*2, LINESIZE*2);
-
-        double S_small_inv[savedLineCount*2*savedLineCount*2] = {0};    //    double S_small_inv[savedLineCount*2*savedLineCount*2] = {0};
-        gsl_matrix_view S_small_inv_v = gsl_matrix_view_array(S_small_inv, savedLineCount*2, savedLineCount*2);
-
-        //debug
-        std::cout << "\nTEMP Innovation Covariance:";
-        for(int i = 0; i < savedLineCount*2; ++i){
-            std::cout << std::endl;
-            for(int j = 0; j < savedLineCount*2; ++j){
-                std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&S_small_v.matrix ,i, j) << " ";
-            }
-        }
-
-        int s;
-
-        gsl_permutation* perm = gsl_permutation_alloc(savedLineCount*2);        //savedLineCount*2
-        errorCodes.push_back(gsl_linalg_LU_decomp(&S_small_v.matrix, perm, &s));
-        if(errorCodes.back() != 0){
-            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-        }
-        errorCodes.push_back(gsl_linalg_LU_invert(&S_small_v.matrix, perm, &S_small_inv_v.matrix));
-        if(errorCodes.back() != 0){
-            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-        }
-
-        gsl_matrix_view S_sub_v = gsl_matrix_submatrix(&S_inv_v.matrix, 0, 0, savedLineCount*2, savedLineCount*2);
-        errorCodes.push_back(gsl_matrix_memcpy(&S_sub_v.matrix, &S_small_inv_v.matrix));
-
-        //updating K
-        double P_pre__Hx_trans[SLAMSIZE*LINESIZE*2] = {0};
-        gsl_matrix_view P_pre__Hx_trans_v = gsl_matrix_view_array(P_pre__Hx_trans, SLAMSIZE, LINESIZE*2);
-
-        errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &P_pre_v.matrix, &Hx_v.matrix, 0.0, &P_pre__Hx_trans_v.matrix));
-        if(errorCodes.back() != 0){
-            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-        }
-        errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &P_pre__Hx_trans_v.matrix, &S_inv_v.matrix, 0.0, &K_v.matrix));
-        if(errorCodes.back() != 0){
-            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
-        }
-
-        //debug
-        std::cout << "\n Innovation Covariance Inverse:";
-        for(int i = 0; i < 12; ++i){
-            std::cout << std::endl;
-            for(int j = 0; j < 12; ++j){
-                std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&S_inv_v.matrix ,i, j) << " ";
             }
         }
     }*/
@@ -938,8 +881,8 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         std::cout << "\n!New Line: alfa: " << this->y[savedLineCount*2] << " r: " << this->y[savedLineCount*2+1];
         //Pll = Gx*Prr*Gx' + Gl*R*Gl'
 
-        double R[4] = {0.2, 0,
-                       0, 0.2
+        double R[4] = {0.1, 0,
+                       0, 0.1
                       };
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
@@ -1305,32 +1248,123 @@ x_posterior_eval = x_posterior(x_prior, K_eval, y_eval)
 P_posterior_eval = P_posterior(Hx, P_prior, K_eval)
 
 
+//FULLMATRIX METHOD <---- mathematically incorrect
+    if(lines.size() != 0 && matchesNum != 0)         //no matches found, or no lines received
+    {
+        //inv(S)
+        double S_small[savedLineCount*2*savedLineCount*2] = {0};
+        gsl_matrix_view S_small_v = gsl_matrix_view_array(S_small, savedLineCount*2, savedLineCount*2);
+        gsl_matrix_view S_small_sub_v = gsl_matrix_submatrix(&S_v.matrix, 0, 0, savedLineCount*2, savedLineCount*2);
+        errorCodes.push_back(gsl_matrix_memcpy(&S_small_v.matrix, &S_small_sub_v.matrix));
+                if(errorCodes.back() != 0){
+            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+        }
 
------ SIMUALATING
- while systemRunning()
+        double S_inv[LINESIZE*2*LINESIZE*2] = {0};
+        gsl_matrix_view S_inv_v = gsl_matrix_view_array(S_inv, LINESIZE*2, LINESIZE*2);
 
-         u = queryMotionSensor();
+        double S_small_inv[savedLineCount*2*savedLineCount*2] = {0};    //    double S_small_inv[savedLineCount*2*savedLineCount*2] = {0};
+        gsl_matrix_view S_small_inv_v = gsl_matrix_view_array(S_small_inv, savedLineCount*2, savedLineCount*2);
 
-         x_hat = f(x,u);
-         Fx_hat = Fx(x,u);
-         Fu_hat = Fu(x,u);
-         P_hat = P_prior(Fx_hat,Fu_hat,P,Q);
+        //debug
+        std::cout << "\nTEMP Innovation Covariance:";
+        for(int i = 0; i < savedLineCount*2; ++i){
+            std::cout << std::endl;
+            for(int j = 0; j < savedLineCount*2; ++j){
+                std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&S_small_v.matrix ,i, j) << " ";
+            }
+        }
 
-         [z, m] = queryLandmarkSensor();
+        int s;
 
-         if ~isempty(z)
-                 z_hat = h(m, x_hat);
-                 Hx_hat = Hx(m, x_hat);
+        gsl_permutation* perm = gsl_permutation_alloc(savedLineCount*2);        //savedLineCount*2
+        errorCodes.push_back(gsl_linalg_LU_decomp(&S_small_v.matrix, perm, &s));
+        if(errorCodes.back() != 0){
+            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+        }
+        errorCodes.push_back(gsl_linalg_LU_invert(&S_small_v.matrix, perm, &S_small_inv_v.matrix));
+        if(errorCodes.back() != 0){
+            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+        }
 
-                 y_hat = y(z, z_hat);
-                 S_hat = S(Hx_hat, P_hat, R);
-                 K_hat = K(Hx_hat, P_hat, S_hat);
+        gsl_matrix_view S_sub_v = gsl_matrix_submatrix(&S_inv_v.matrix, 0, 0, savedLineCount*2, savedLineCount*2);
+        errorCodes.push_back(gsl_matrix_memcpy(&S_sub_v.matrix, &S_small_inv_v.matrix));
 
-                 x = x_posterior(x_hat, K_hat, y_hat);
-                 P = P_posterior(Hx_hat, P_hat, K_hat);
-         else
-                 x = x_hat;
-                 P = P_hat;
-         end
- end
+        //updating K
+        double P_pre__Hx_trans[SLAMSIZE*LINESIZE*2] = {0};
+        gsl_matrix_view P_pre__Hx_trans_v = gsl_matrix_view_array(P_pre__Hx_trans, SLAMSIZE, LINESIZE*2);
+
+        errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &P_pre_v.matrix, &Hx_v.matrix, 0.0, &P_pre__Hx_trans_v.matrix));
+        if(errorCodes.back() != 0){
+            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+        }
+        errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &P_pre__Hx_trans_v.matrix, &S_inv_v.matrix, 0.0, &K_v.matrix));
+        if(errorCodes.back() != 0){
+            std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+        }
+
+        //debug
+        std::cout << "\n Innovation Covariance Inverse:";
+        for(int i = 0; i < 12; ++i){
+            std::cout << std::endl;
+            for(int j = 0; j < 12; ++j){
+                std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&S_inv_v.matrix ,i, j) << " ";
+            }
+        }
+    }
+
+
+//FULLMATRIX METHOD BIG S
+
+            //S = H*P_pre*H' ( + R )
+            double Hx[LINESIZE*2*SLAMSIZE];
+            gsl_matrix_view Hx_v = gsl_matrix_view_array(Hx, LINESIZE*2, SLAMSIZE);
+            for(int k = 0; k < (savedLineCount*2); k+=2){
+                gsl_matrix_set(&Hx_v.matrix, k, 0, 0);
+                gsl_matrix_set(&Hx_v.matrix, k, 1, 0);
+                gsl_matrix_set(&Hx_v.matrix, k, 2, -1.0);           //-1 ? +1 ????????????????????????
+                gsl_matrix_set(&Hx_v.matrix, k+1, 0, -cos(this->y[k+3]));
+                gsl_matrix_set(&Hx_v.matrix, k+1, 1, -sin(this->y[k+3]));
+                gsl_matrix_set(&Hx_v.matrix, k+1, 2, 0);
+            }
+            for(int k = 0; k < savedLineCount*2; k+=2){
+                for(int l = 3; l < SLAMSIZE; l+=2){
+                    gsl_matrix_set(&Hx_v.matrix, k, l, 1.0);
+                    gsl_matrix_set(&Hx_v.matrix, k, l+1, 0);
+                    gsl_matrix_set(&Hx_v.matrix, k+1, l, x_pre[0]*sin(this->y[l])- x_pre[1]*cos(this->y[l]));
+                    gsl_matrix_set(&Hx_v.matrix, k+1, l+1, 1.0);
+                }
+
+            }
+
+            //debug
+            std::cout << "\n Measurement Jacobian full: \n";
+            for(int i = 0; i < 13; ++i){
+                std::cout << std::endl;
+                for(int j = 0; j < 13; ++j){
+                    std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&Hx_v.matrix, i, j) << " ";
+                }
+            }
+
+            //double Hx[LINESIZE*2*SLAMSIZE] = {0, 0, -1.0,        //-1 ? +1 ????????????????????????
+            //                        -cos(m[0]), -sin(m[0]), 0
+            //                       };
+
+            //double Hx__P_pre[6] = {0, 0, 0,
+            //                               0, 0, 0
+            //                              };
+            double Hx__P_pre[LINESIZE*2*SLAMSIZE] = {0};
+            gsl_matrix_view Hx__P_pre_v = gsl_matrix_view_array(Hx__P_pre, LINESIZE*2, SLAMSIZE);
+
+            double S[LINESIZE*2*LINESIZE*2] = {0};
+            gsl_matrix_view S_v = gsl_matrix_view_array(S, LINESIZE*2, LINESIZE*2);
+
+            errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &Hx_v.matrix, &P_pre_v.matrix, 0.0, &Hx__P_pre_v.matrix));
+            if(errorCodes.back() != 0){
+                std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+            }
+            errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &Hx__P_pre_v.matrix, &Hx_v.matrix, 0.0, &S_v.matrix));
+            if(errorCodes.back() != 0){
+                std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
+            }
 */
