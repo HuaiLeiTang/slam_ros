@@ -219,6 +219,7 @@ while(ros::ok) {
             test.SetPose(pose);
             test.PathPlaning(target);
             test.ExportGraf();
+            path.clear();
             path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
             path.push_back(test.dijkPath[test.dijkPath.size() - 2]);
             turn = true;
@@ -261,8 +262,6 @@ while(ros::ok) {
             command.y = ((path[1] - pose).Lenght())/100;
         }
         pubCommand.publish(command);
-        path.clear();
-
     }
     s.sleep();
     ros::spinOnce();

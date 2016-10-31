@@ -51,7 +51,7 @@ public:
     Vec2 MapIndexInverse(int index);
     Vec2 NextGoal();
     static constexpr double r = 10;
-    static constexpr double senser = 300;
+    static constexpr double senser = 500;
 };
 
 #endif // GRIDMAP_H

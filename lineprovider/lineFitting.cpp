@@ -617,7 +617,7 @@ void LineConversion(vector<line>& lines) {
 
 vector<line> LineExtraction(vector<polar_point>& pol_points) {
     vector<int> split;
-   // qsort (&pol_points[0], pol_points.size(), sizeof(polar_point), comparePolar);
+    qsort (&pol_points[0], pol_points.size(), sizeof(polar_point), comparePolar);
     segmentation(pol_points,split);
     cout<<"split num "<< split.size()<<endl;
     if(split.size() != 0) {

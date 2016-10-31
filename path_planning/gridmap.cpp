@@ -93,17 +93,21 @@ void GridMap::SetGrid(Vec2 grid, int value) {
 }
 
 std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
-    Vec2 kvantF = Vec2Quantization(firstPoint);
-    Vec2 kvantE = Vec2Quantization(endPoint);
-    Vec2 compass;
+ //   Vec2 kvantF = Vec2Quantization(firstPoint);
+ //   Vec2 kvantE = Vec2Quantization(endPoint);
+    Vec2 F = firstPoint;
+    Vec2 kvantF;
+    Vec2 FE_norm = endPoint - firstPoint;
+    FE_norm = FE_norm.Norm();
+    FE_norm = FE_norm * (r/2);
+ //   Vec2 compass;
     vector<int> buf;
     while(true) {
+        kvantF = Vec2Quantization(F);
         SetGrid(kvantF,value);
         buf.push_back(MapIndex(kvantF));
-        compass = kvantE - kvantF;
-        compass = Vec2QBaseVector(compass);
-        kvantF = kvantF + compass;
-        if(kvantF == kvantE) {
+        F = F + FE_norm;
+        if(Distance(F,endPoint) < r/2) {
             break;
         }
         if(stoppable && (data[MapIndex(kvantF)] == OCCUPANCY)) {
@@ -167,7 +171,7 @@ void GridMap::DrawCircle() {
     double dfi = PI*2/num;
     polar_point iter;
     iter.alfa = 0;
-    iter.r = senser/3;
+    iter.r = 1.5; // nem klne hogy tul nagy legyen
     vector<polar_point> circ;
     for(int i = 0; i < num + 1; i++) {
         iter.alfa = PI/4 + dfi*(double)i;
