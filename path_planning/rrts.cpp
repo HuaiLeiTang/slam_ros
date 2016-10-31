@@ -376,15 +376,13 @@ RRTs::RRTs(std::vector<AncientObstacle*> map,Node firstNode ,double maxX, double
     *first = firstNode;
     graf.push_back(first);
     srand (time(NULL));
-    dijkstrafile.open("/home/mono/path/dijkstra.txt");
-    myfile.open("/home/mono/path/graf.txt");
-    mapfile.open("/home/mono/path/map.txt");
-    pathfile.open("/home/mono/path/path.txt");
-    linefile.open("/home/mono/path/line.txt");
-    reducedPathfile.open("/home/mono/path/reducedpath.txt");
-    sendPathfile.open("/home/mono/path/sendpath.txt");
-    visiblefile.open("/home/mono/path/visible.txt");
 }
+
+RRTs::RRTs(double maxX, double maxY): maxMapSizeX(maxX),
+    maxMapSizeY(maxY), graf(), path(), reducedPath(), sendPath(), dijkPath(), visibleGraft() {
+    srand (time(NULL));
+}
+
 
 bool RRTs::IsPartOfGraf(Node *newNode) {
    return newNode->partOf;
@@ -496,6 +494,22 @@ void RRTs::PathPlaning(Node goal) {
 }
 
 void RRTs::ExportGraf() {
+    ofstream myfile;
+    ofstream mapfile;
+    ofstream linefile;
+    ofstream pathfile;
+    ofstream reducedPathfile;
+    ofstream sendPathfile;
+    ofstream dijkstrafile;
+    ofstream visiblefile;
+    dijkstrafile.open("/home/mono/path/dijkstra.txt");
+    myfile.open("/home/mono/path/graf.txt");
+    mapfile.open("/home/mono/path/map.txt");
+    pathfile.open("/home/mono/path/path.txt");
+    linefile.open("/home/mono/path/line.txt");
+    reducedPathfile.open("/home/mono/path/reducedpath.txt");
+    sendPathfile.open("/home/mono/path/sendpath.txt");
+    visiblefile.open("/home/mono/path/visible.txt");
      for(int i = 0; i < graf.size(); i++) {
          for(int j = 0; j < graf[i]->childern.size(); j++) {
                  myfile<<graf[i]->x<<" "<<graf[i]->y<<endl;
@@ -544,5 +558,5 @@ void RRTs::SetPose(Vec2 pose) {
 }
 
 void RRTs::AddObstacles(std::vector<AncientObstacle *> newobs) {
-    this->obstacles.insert(obstacles.begin(),newobs.begin(),newobs.end());
+    this->obstacles.insert(obstacles.end(),newobs.begin(),newobs.end());
 }

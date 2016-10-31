@@ -67,6 +67,7 @@ public:
 class RRTs {
 public:
     RRTs(std::vector<AncientObstacle*> map,Node firstNode,double maxX, double maxY);
+    RRTs(double maxX, double maxY);
     Node* ClosestNode(Node* randNode);
     std::vector<AncientObstacle*> obstacles;
     std::vector<Node*> graf;
@@ -86,14 +87,6 @@ public:
     void SetPose(Vec2 pose);
     void Reset();
     void AddObstacles(std::vector<AncientObstacle*> newobs);
-    ofstream myfile;
-    ofstream mapfile;
-    ofstream linefile;
-    ofstream pathfile;
-    ofstream reducedPathfile;
-    ofstream sendPathfile;
-    ofstream dijkstrafile;
-    ofstream visiblefile;
 };
 
 #endif // RRTS_H

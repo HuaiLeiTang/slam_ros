@@ -37,14 +37,13 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
         output_file<<points[points.size()-1].r<<" "<<points[points.size()-1].alfa + M_PI<<endl;
     }
     lines = LineExtraction(points);
-    for(auto &lin : lines){
+  /*  for(auto &lin : lines){
         lin.alfa += M_PI;
         lin.alfa = lin.alfa > M_PI ? lin.alfa-2.0*M_PI : lin.alfa;
         cout<< lin.alfa <<" "<<lin.r<<endl;
         lin.WriteCov();
-    }
+    }*/
     newlines = true;
-    cout<<"finish line extrat"<<endl;
 }
 
 void pose_cb(geometry_msgs::Vector3 msg) {
@@ -97,7 +96,7 @@ int main(int argc,char* argv[])
                 newpose = false;
                 Transform();
                 publines.publish(lineIntervals);
-                cout<<"publish"<<endl;
+                cout<<"publish: "<<lineIntervals.data.size()<<endl;
                 lineIntervals.data.clear();
             }
         }

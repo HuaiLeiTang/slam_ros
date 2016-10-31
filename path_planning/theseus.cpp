@@ -24,12 +24,15 @@ Vec2 pose;
 bool turn = false;
 bool inTurn = false;
 bool go = false;
+bool firstCilkus = true;
 geometry_msgs::Vector3 command;
 vector<Vec2> path;
 double roundParam;
 
 Vec2 temp;
 Node target(-700,-700);
+
+RRTs test(1000,1000);
 
 vector< AncientObstacle* >  LineMapGenerator(void) {
     vector<double> alfa;
@@ -110,16 +113,40 @@ vector< AncientObstacle* >  LineMapGenerator(void) {
 }
 
 void lines_cb(const std_msgs::Float32MultiArray::ConstPtr& array) {
+    lineIntervals.clear();
+    robstacles.clear();
     for(std::vector<float>::const_iterator it = array->data.begin(); it != array->data.end(); it = it + 4)
     {
         lineIntervals.push_back(Vec2(*(it)*100,*(it + 1)*100)); // mer hülye vagyok és cm-ben kezdtem irni mident
         lineIntervals.push_back(Vec2(*(it + 2)*100,*(it + 3)*100));
+    }
+    ofstream output_file;
+    ofstream linefile;
+    linefile.open("line.txt");
+    output_file.open("p_data.txt");
+    for(int i = 0; i < lineIntervals.size() - 1; i = i + 2) {
+        output_file<<lineIntervals[i]<<endl;
+        output_file<<lineIntervals[i + 1]<<endl;
     }
     AncientObstacle* newobs;
     for(int i = 0; i < lineIntervals.size(); i = i + 2) {
         newobs = new StraightObstacle(lineIntervals[i],lineIntervals[i + 1]);
         robstacles.push_back(newobs);
     }
+    cout<<"test obs elotte: "<<test.obstacles.size()<<endl;
+    test.AddObstacles(robstacles);
+    cout<<"test obs utana: "<<test.obstacles.size()<<endl;
+    for(int i = 0; i < test.obstacles.size(); i++) {
+        if(test.obstacles[i]->type == lineObstacle) {
+            test.obstacles[i]->Draw(linefile);
+        }
+    }
+    /*test.SetPose(pose);
+    test.PathPlaning(target);
+    path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
+    path.push_back(test.dijkPath[test.dijkPath.size() - 2]);
+    test.ExportGraf();
+    test.Reset();*/
     newlines = true;
     return;
 }
@@ -140,6 +167,7 @@ void pose_cb(geometry_msgs::Vector3 msg) {
     }
     if(inGo) {
         inGo = false;
+        tripEnd = true;
     }
 }
 
@@ -153,29 +181,29 @@ ros::Subscriber sublines = n.subscribe<std_msgs::Float32MultiArray>("lines",100,
 ros::Subscriber subpose = n.subscribe<geometry_msgs::Vector3>("robotPose",100,pose_cb);
 ros::Publisher pubCommand = n.advertise<geometry_msgs::Vector3>("/motionCommand",100);
 //std_msgs::Float32MultiArray path;
-Node firstNode(-400,-200);
-Node goal(500,500);
-firstNode.partOf = true;
-RRTs test(LineMapGenerator(),firstNode,1000,1000);
-test.obstacles.clear();
-test.Reset();
+
 
 ros::Rate s(10);
 while(ros::ok) {
-    if((newlines == true) && (newpose == true) && (inGo == false)) {
-        cout<<"Start wait sensor"<<endl;
-       // sleep(8);
-        cout<<"End wait sensor"<<endl;
+    if(firstCilkus) {
+        if(pubCommand.getNumSubscribers() == 1) {
+            command.x = 1;
+            command.y = 0;
+            command.z = 0;
+            pubCommand.publish(command);
+            firstCilkus = false;
+        }
+    }
+    if((newlines == true) && (newpose == true)) {
         gmap.SetRobotPose(pose);
-        cout<<"Set Pose for Gmap: "<<pose<<endl;
         gmap.DrawObstacle(robstacles);
         gmap.UpgradeKnownGrid(robstacles);
         gmap.UpgradeTargets(robstacles);
-        test.AddObstacles(robstacles);
-        test.Reset();
+      /*  test.SetPose(pose);
+        test.PathPlaning(target);
+        test.ExportGraf();*/
         if(tripEnd) {
             tripEnd = false;
-            test.Reset();
             if(false) { // ide !(!targetActive kell
                 targetActive = true;
                 temp = gmap.NextGoal();
@@ -189,27 +217,22 @@ while(ros::ok) {
                 target.y = temp.y;
             }
             test.SetPose(pose);
-            cout<<"Start path planing"<<endl;
             test.PathPlaning(target);
+            test.ExportGraf();
             path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
             path.push_back(test.dijkPath[test.dijkPath.size() - 2]);
-            cout<<"New path"<<endl;
-            test.ExportGraf();
-            cout<<"Exportgraf"<<endl;
             turn = true;
         }
-      //  gmap.PublishMap();
+        test.Reset();
         newlines = false;
         newpose = false;
-        robstacles.clear();
-        cout<<"drawing"<<endl;
+        gmap.PublishMap();
     }
     if(turn) {
         turn = false;
         inTurn = true;
         roundParam = atan2(path[1].y - path[0].y,path[1].x - path[0].x);
         roundParam = roundParam - theta;
-        cout<<"roundParam - fi = "<<roundParam<<endl;
         if(roundParam >= PI ) {
             roundParam = -(2*PI - roundParam);
         }
@@ -219,28 +242,24 @@ while(ros::ok) {
         if(roundParam > 0) {
             command.x = 2;
             command.y = roundParam;
-            cout<<"Left :"<<command.y<<endl;
             pubCommand.publish(command);
         }
         else {
             command.x = 3;
             command.y = -roundParam;
             pubCommand.publish(command);
-             cout<<"Right :"<<command.y<<endl;
         }
     }
     if(go) {
         //sleep(15);
         go = false;
         inGo = true;
-        tripEnd = true;
         command.x = 1;
-        if( (((path[1] - pose).Lenght())/100) > 3.5 )
-            command.y = 3.5;
+        if( (((path[1] - pose).Lenght())/100) > 3 )
+            command.y = 3;
         else {
             command.y = ((path[1] - pose).Lenght())/100;
         }
-        cout<<"Forward :"<<command.y<<endl;
         pubCommand.publish(command);
         path.clear();
 
@@ -248,19 +267,6 @@ while(ros::ok) {
     s.sleep();
     ros::spinOnce();
 }
-
-/*while(ros::ok) {
-    if((newlines == true) && (newpose == true)) {
-        gmap.SetRobotPose(pose);
-        gmap.DrawObstacle(robstacles);
-        gmap.UpgradeKnownGrid(robstacles);
-        gmap.UpgradeTargets(robstacles);
-        gmap.PublishMap();
-    }
-
-    s.sleep();
-    ros::spinOnce();
-}*/
 
 
 return 0;
