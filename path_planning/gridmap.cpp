@@ -11,8 +11,10 @@ inline bool operator==(const ObsVec& va, const ObsVec& vb) {
 bool operator<(const ObsVec& va, const ObsVec& vb)
 {
     double alfa = atan2(va.firstPoint.y,va.firstPoint.x);
+    alfa = alfa < 0 ? alfa + 2.0*M_PI : alfa;
     double beta = atan2(vb.firstPoint.y,vb.firstPoint.x);
-    if((alfa + PI) > (alfa + PI))
+    beta = beta < 0 ? beta + 2.0*M_PI : beta;
+    if((alfa) < (beta))
         return true;
     else
         return false;
@@ -21,8 +23,10 @@ bool operator<(const ObsVec& va, const ObsVec& vb)
 bool operator>(const ObsVec& va, const ObsVec& vb)
 {
     double alfa = atan2(va.firstPoint.y,va.firstPoint.x);
+    alfa = alfa < 0 ? alfa + 2.0*M_PI : alfa;
     double beta = atan2(vb.firstPoint.y,vb.firstPoint.x);
-    if((alfa + PI) > (alfa + PI))
+    beta = beta < 0 ? beta + 2.0*M_PI : beta;
+    if((alfa) > (beta))
         return true;
     else
         return false;
@@ -311,7 +315,6 @@ std::pair<Vec2,Vec2> GridMap::ClosestFirst(AncientObstacle * obstacle) {
     Vec2 alfaFirst = first - rpose;
     Vec2 alfaEnd = end - rpose;
     double deltaFi = atan2(alfaEnd.y, alfaEnd.x) - atan2(alfaFirst.y,alfaFirst.x);
-    cout<<"end alfa: "<<atan2(alfaEnd.y, alfaEnd.x)*180/PI<<" first :"<<atan2(alfaFirst.y,alfaFirst.x)*180/PI<<endl;
     if(abs(deltaFi) > PI) {
         if(deltaFi < 0) {
             deltaFi = 2*PI + deltaFi;
@@ -340,8 +343,9 @@ int compareObsVec (const void * a, const void * b)
 
 std::vector<AncientObstacle*> GridMap::SortObstacles(std::vector<AncientObstacle *> &obstacles) {
     std::vector<ObsVec> ret;
+    Vec2 rpose(pose.x,pose.y);
     for(int i = 0; i < obstacles.size(); i++) {
-        ret.push_back(ObsVec(obstacles[i],obstacles[i]->FirstPoint()));
+        ret.push_back(ObsVec(obstacles[i],obstacles[i]->FirstPoint() - rpose));
     }
     qsort(&ret[0], ret.size(), sizeof(ObsVec), compareObsVec);
     vector<AncientObstacle*> sortret;
@@ -369,7 +373,10 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
     std::pair<Vec2,Vec2> inter;
     std::vector<int> tempBuf;
     polar_point targetStart;
+    double alfa;
     for(int i = 0; i < obstacles.size(); i++) {
+        alfa = atan2(obstacles[i]->FirstPoint().y,obstacles[i]->FirstPoint().x);
+        cout<<"alfa "<<alfa<<endl;
         inter = ClosestFirst(obstacles[i]);
         first = inter.first;
         end = inter.second;
@@ -384,7 +391,9 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         nextend = inter.second;
         ef = end -first;;
         nef = nextend - nextfirst;
-        if( Distance(end,nextfirst) <= r*2 ) {
+        cout<<"first "<<end<<" "<<nextfirst<<endl;
+        cout<<"dist asd"<<Distance(end,nextfirst)<< endl;
+        if( Distance(end,nextfirst) <= resolution*2 ) {
             continue;
         }
         goal = nextfirst - end;
@@ -413,7 +422,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         previousFirst = inter.first;
         ef = end - first;
         pfe = previousFirst - previousEnd;
-        if(Distance(first,previousEnd) < r*2) {
+        if(Distance(first,previousEnd) < resolution*2) {
             continue;
         }
         pose.x = first.x;

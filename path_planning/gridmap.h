@@ -52,7 +52,7 @@ public:
     Vec2 MapIndexInverse(int index);
     Vec2 NextGoal();
     std::vector<AncientObstacle*> SortObstacles(std::vector<AncientObstacle *> &obstacles);
-    static constexpr double r = 10;
+    static constexpr double r = 15;
     static constexpr double senser = 500;
 };
 
