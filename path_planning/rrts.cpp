@@ -370,12 +370,20 @@ bool StraightObstacle::IsCollision(Node inGraf, Node *randNode, bool edit) {
 }
 
 RRTs::RRTs(std::vector<AncientObstacle*> map,Node firstNode ,double maxX, double maxY): maxMapSizeX(maxX),
-    maxMapSizeY(maxY), graf(), path(), reducedPath(), sendPath(), dijkPath() {
+    maxMapSizeY(maxY), graf(), path(), reducedPath(), sendPath(), dijkPath(), visibleGraft() {
     obstacles = map;
     Node* first = new Node[1];
     *first = firstNode;
     graf.push_back(first);
     srand (time(NULL));
+    dijkstrafile.open("/home/mono/path/dijkstra.txt");
+    myfile.open("/home/mono/path/graf.txt");
+    mapfile.open("/home/mono/path/map.txt");
+    pathfile.open("/home/mono/path/path.txt");
+    linefile.open("/home/mono/path/line.txt");
+    reducedPathfile.open("/home/mono/path/reducedpath.txt");
+    sendPathfile.open("/home/mono/path/sendpath.txt");
+    visiblefile.open("/home/mono/path/visible.txt");
 }
 
 bool RRTs::IsPartOfGraf(Node *newNode) {
@@ -434,6 +442,7 @@ void RRTs::PathPlaning(Node goal) {
     this->goal = goal;
     Node* randNode;
     Node* closestNode;
+    Vec2* temprand;
     do {
         randNode = RandNode();
         closestNode = ClosestNode(randNode);
@@ -456,6 +465,8 @@ void RRTs::PathPlaning(Node goal) {
     graph g(path.size());
     bool collide = false;
     int c = 0;
+    Vec2 tempvisible_1;
+    Vec2 tempvisible_2;
     for(int i = 0; i < path.size() - 1; i++) {
         for(int j = i + 1; j < path.size(); j++) {
             for(int k = 0; k < obstacles.size(); k++) {
@@ -466,6 +477,12 @@ void RRTs::PathPlaning(Node goal) {
             }
             if(!collide) {
                 g.addEdge(i,j,Distance(path[i],path[j]));
+                tempvisible_1.x = path[i]->x;
+                tempvisible_1.y = path[i]->y;
+                tempvisible_2.x = path[j]->x;
+                tempvisible_2.y = path[j]->y;
+                visibleGraft.push_back(tempvisible_1);
+                visibleGraft.push_back(tempvisible_2);
                 c++;
             }
             collide = false;
@@ -479,20 +496,6 @@ void RRTs::PathPlaning(Node goal) {
 }
 
 void RRTs::ExportGraf() {
-     ofstream myfile;
-     ofstream mapfile;
-     ofstream linefile;
-     ofstream pathfile;
-     ofstream reducedPathfile;
-     ofstream sendPathfile;
-     ofstream dijkstrafile;
-     dijkstrafile.open("/home/mono/path/dijkstra.txt");
-     myfile.open("/home/mono/path/graf.txt");
-     mapfile.open("/home/mono/path/map.txt");
-     pathfile.open("/home/mono/path/path.txt");
-     linefile.open("/home/mono/path/line.txt");
-     reducedPathfile.open("/home/mono/path/reducedpath.txt");
-     sendPathfile.open("/home/mono/path/sendpath.txt");
      for(int i = 0; i < graf.size(); i++) {
          for(int j = 0; j < graf[i]->childern.size(); j++) {
                  myfile<<graf[i]->x<<" "<<graf[i]->y<<endl;
@@ -510,6 +513,11 @@ void RRTs::ExportGraf() {
      for(int i = 0; i < path.size(); i++) {
          pathfile<<path[i]->x<<" "<<path[i]->y<<endl;
      }
+     for(int i = 0; i < visibleGraft.size() - 1; i++) {
+         visiblefile<<visibleGraft[i]<<endl;
+         visiblefile<<visibleGraft[i+1]<<endl;
+
+     }
      for(int i = 0; i < reducedPath.size(); i++) {
          reducedPathfile<<reducedPath[i].x<<" "<<reducedPath[i].y<<endl;
      }
@@ -519,4 +527,22 @@ void RRTs::ExportGraf() {
      for(int i = 0; i < dijkPath.size(); i++) {
          dijkstrafile<<dijkPath[i].x<<" "<<dijkPath[i].y<<endl;
      }
+}
+
+void RRTs::Reset() {
+    this->dijkPath.clear();
+    this->graf.clear();
+    this->path.clear();
+    this->reducedPath.clear();
+    this->sendPath.clear();
+}
+
+void RRTs::SetPose(Vec2 pose) {
+    Node* first = new Node(pose.x,pose.y);
+    first->partOf = true;
+    graf.push_back(first);
+}
+
+void RRTs::AddObstacles(std::vector<AncientObstacle *> newobs) {
+    this->obstacles.insert(obstacles.begin(),newobs.begin(),newobs.end());
 }

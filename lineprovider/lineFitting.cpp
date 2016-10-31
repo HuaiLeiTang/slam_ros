@@ -303,7 +303,7 @@ double Func(double x, void * params)
 
 }
 
-gsl_matrix* Covariancia(vector<polar_point> cov_data) {
+/*gsl_matrix* Covariancia(vector<polar_point> cov_data) {
     gsl_matrix *F_pq = gsl_matrix_alloc(2,(size_t)2*cov_data.size()); // 2*n size Row a
     gsl_matrix *C_x = gsl_matrix_alloc((size_t)2*cov_data.size(),(size_t)2*cov_data.size());
     gsl_matrix *F_pq_t = gsl_matrix_alloc((size_t)2*cov_data.size(),2);
@@ -346,9 +346,9 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data) {
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pg_C_x,F_pq_t,0.0,C_ar);
     ofstream matrix;
     return C_ar;
-}
+}*/
 
-/*gsl_matrix* Covariancia(vector<polar_point> cov_data)
+gsl_matrix* Covariancia(vector<polar_point> cov_data)
 {
     gsl_matrix *F_pq = gsl_matrix_alloc(2,(size_t)2*cov_data.size()); // 2*n size Row a
     gsl_matrix *C_x = gsl_matrix_alloc((size_t)2*cov_data.size(),(size_t)2*cov_data.size());
@@ -385,6 +385,7 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data) {
     for(int i = 0; i < cov_data.size();i++)
     {
         gsl_matrix_set(C_x,i,i,cov_data[i].variance*cov_data[i].variance);
+        gsl_matrix_set(C_x,i + cov_data.size(),i + cov_data.size(),cov_data[i].variance*cov_data[i].alfaVariance);
     }
 
     int j = 0;
@@ -411,7 +412,7 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data) {
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pq,C_x,0.0,F_pg_C_x);//F_pq*C_x
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pg_C_x,F_pq_t,0.0,C_ar);
     return C_ar;
-}*/
+}
 /*_____________Line Extracion_______________*/
 
 
@@ -498,6 +499,30 @@ int compareDouble (const void * a, const void * b)
   if ( *(double*)a >  *(double*)b ) return 1;
 }
 
+bool operator<(const polar_point& a, const polar_point& b)
+{
+    if((a.alfa + PI) < (b.alfa + PI))
+        return true;
+    else
+        return false;
+}
+
+bool operator>(const polar_point& a, const polar_point& b)
+{
+    if((a.alfa + PI) > (b.alfa + PI))
+        return true;
+    else
+        return false;
+}
+
+
+int comparePolar (const void * a, const void * b)
+{
+  if ( *(polar_point*)a <  *(polar_point*)b ) return -1;
+  if ( *(polar_point*)a == *(polar_point*)b ) return 0;
+  if ( *(polar_point*)a >  *(polar_point*)b ) return 1;
+}
+
 void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
     int len = pol_points.size() - 1;
     double dist[len];
@@ -512,7 +537,7 @@ void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
             max = dist[i];
         }
     }
-    for(int i = 0; i < len; i++) {
+ /*   for(int i = 0; i < len; i++) {
         mediandist[i] = dist[i];
     }
     qsort (mediandist,len,sizeof(double),compareDouble);
@@ -528,15 +553,14 @@ void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
             mediandist[i] = median*5;
         }
 
-    }
+    }*/
     double sum_di;
     for(int i = 0; i < len; i++) {
-        sum_di = sum_di + mediandist[i];
+        sum_di = sum_di + dist[i];
     }
     double avr = sum_di/len;
+    avr = avr*4;
     distfile<<avr<<endl;
-    double max_avr = max/avr;
-    cout<<"max_avr: "<<max_avr<<endl;
     if(true) {
         for(int i = 0; i < len; i++) {
             if(dist[i] > avr) {
@@ -544,7 +568,6 @@ void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
             }
         }
     }
-    cout<<"split num"<<split.size()<<endl;
 }
 
 void LineConversion(vector<line>& lines) {
@@ -594,11 +617,14 @@ void LineConversion(vector<line>& lines) {
 
 vector<line> LineExtraction(vector<polar_point>& pol_points) {
     vector<int> split;
+   // qsort (&pol_points[0], pol_points.size(), sizeof(polar_point), comparePolar);
     segmentation(pol_points,split);
+    cout<<"split num "<< split.size()<<endl;
     if(split.size() != 0) {
         rotate(pol_points.begin(),pol_points.begin() + split.back(),pol_points.end());
         split.clear();
         segmentation(pol_points,split);
+        cout<<"split num "<< split.size()<<endl;
         if(split.size() != 0) {
             int segmens_num = split.size() + 1;
             vector<polar_point> segmens[segmens_num];

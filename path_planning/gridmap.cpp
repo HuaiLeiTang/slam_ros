@@ -82,6 +82,10 @@ int GridMap::MapIndex(Vec2 qindex) {
 }
 
 void GridMap::SetGrid(Vec2 grid, int value) {
+    if(value == OCCUPANCY) {
+        data[MapIndex(grid)] = value;
+        return;
+    }
     if( (data[MapIndex(grid)] == KNOWN) || (data[MapIndex(grid)] == OCCUPANCY)) {
         return;
     }
@@ -151,8 +155,6 @@ std::vector<int*> GridMap::DrawArc(double radius, Vec2 firstPoint, Vec2 endPoint
         first = end;
         end = temp;
     }
-    cout<<"first "<<first<<endl;
-    cout<<"rad "<<deltaFi*180/PI<<endl;
     double rad = abs(deltaFi);
     DrawCircle(first,radius,rad,value,stoppable);
     vector<int*> ret;
@@ -387,7 +389,7 @@ Vec2 GridMap::NextGoal() {
    int targethalmaz;
    Vec2 rpose(pose.x,pose.y);
    if(targets.size() == 0 ) {
-       return Vec2(minDist,minDist);
+       return Vec2(0,0);
    }
    for(int i = 0; i < targets.size(); i++) {
        for(int j = 0; j < targets[i].size(); j++) {
@@ -404,6 +406,11 @@ Vec2 GridMap::NextGoal() {
        data[targets[targethalmaz][j]] = KNOWN;
    }
    targets.erase(targets.begin() + targethalmaz);
-   SetGrid(Vec2Quantization(minVec),OCCUPANCY);
+   //SetGrid(Vec2Quantization(minVec),OCCUPANCY);
    return minVec;
+}
+
+void GridMap::SetRobotPose(Vec2 pose) {
+    this->pose.x = pose.x;
+    this->pose.y = pose.y;
 }

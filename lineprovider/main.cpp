@@ -26,20 +26,22 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     points.clear();
     lines.clear();
     polar_point temp;
+    cout<<"start line asd"<<endl;
+    std::default_random_engine generator;
+    std::normal_distribution<double> distribution(0.0,0.1);
     for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
         points[points.size()-1].alfa = msg.data[i+1] - M_PI;
-        points[points.size()-1].r = msg.data[i];
-        points[points.size()-1].variance = 0.1;
+        points[points.size()-1].r = msg.data[i];// + distribution(generator) ;
+        points[points.size()-1].variance = 0.05;
         output_file<<points[points.size()-1].r<<" "<<points[points.size()-1].alfa + M_PI<<endl;
     }
     lines = LineExtraction(points);
     for(auto &lin : lines){
         lin.alfa += M_PI;
         lin.alfa = lin.alfa > M_PI ? lin.alfa-2.0*M_PI : lin.alfa;
-    }
-    for(int i = 0; i < lines.size(); ++i){
-        std::cout << "\n" << lines[i].alfa << " " << lines[i].r;
+        cout<< lin.alfa <<" "<<lin.r<<endl;
+        lin.WriteCov();
     }
     newlines = true;
     cout<<"finish line extrat"<<endl;

@@ -82,6 +82,18 @@ public:
     std::vector<Node> reducedPath;
     std::vector<Vec2> sendPath;
     std::vector<Node> dijkPath;
+    std::vector<Vec2> visibleGraft;
+    void SetPose(Vec2 pose);
+    void Reset();
+    void AddObstacles(std::vector<AncientObstacle*> newobs);
+    ofstream myfile;
+    ofstream mapfile;
+    ofstream linefile;
+    ofstream pathfile;
+    ofstream reducedPathfile;
+    ofstream sendPathfile;
+    ofstream dijkstrafile;
+    ofstream visiblefile;
 };
 
 #endif // RRTS_H

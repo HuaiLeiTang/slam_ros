@@ -33,7 +33,7 @@ public:
     ros::Publisher mapPublisher;
     ros::NodeHandle* handle;
     void SetGrid(Vec2 grid, int value);
-    void SetRobotPose(geometry_msgs::Vector3 pose);
+    void SetRobotPose(Vec2 pose);
     geometry_msgs::Vector3 pose;
     void PublishMap(void);
     void DrawObstacle(std::vector<AncientObstacle*> obstacles);
