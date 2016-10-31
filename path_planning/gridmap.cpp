@@ -100,6 +100,9 @@ std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bo
     Vec2 FE_norm = endPoint - firstPoint;
     FE_norm = FE_norm.Norm();
     FE_norm = FE_norm * (r/2);
+    if(value == TARGET) {
+        F = F + FE_norm*5;
+    }
  //   Vec2 compass;
     vector<int> buf;
     while(true) {
@@ -219,6 +222,37 @@ std::vector<int> GridMap::DrawCircle(Vec2 start, double radius, double rad, int 
 }
 
 
+
+std::vector<int> GridMap::DrawNegativCircle(Vec2 start, double radius, double rad, int value, bool stoppable) {
+    Vec2 rpose(pose.x,pose.y);
+    std::vector<int> ret;
+    std::vector<int> tempBuf;
+    int num = ceil((rad/resolution)*senser*40);
+    double dfi = rad/num;
+    polar_point iter = descart2polar(start);
+    double base = iter.alfa;
+    iter.alfa = 0;
+    iter.r = radius;
+    vector<polar_point> circ;
+    for(int i = 0; i < num + 1; i++) {
+        iter.alfa = base - dfi*(double)i;
+        iter.alfa = iter.alfa < (M_PI*(-1)) ? iter.alfa + 2.0*M_PI : iter.alfa;
+        circ.push_back(iter);
+    }
+    vector<Point> descartcirc;
+    polar2descart(circ,descartcirc);
+    Vec2 t;
+    for(int i = 0; i < num + 1; i++) {
+        t.x = descartcirc[i].x;
+        t.y = descartcirc[i].y;
+        t = t + rpose;
+        tempBuf = DrawLine(rpose,t,value,stoppable);
+        ret.insert(ret.end(),tempBuf.begin(),tempBuf.end());
+    }
+    return ret;
+}
+
+
 void GridMap::UpgradeKnownGrid(std::vector<AncientObstacle *>& obstacles) {
     Vec2 rpose(pose.x,pose.y);
     DrawCircle();
@@ -246,9 +280,10 @@ std::pair<Vec2,Vec2> GridMap::ClosestFirst(AncientObstacle * obstacle) {
         first = obstacle->FirstDown();
         end = obstacle->EndDown();
     }
-    first = first;
-    end = end;
-    double deltaFi = atan2(end.y, end.x) - atan2(first.y,first.x);
+    Vec2 alfaFirst = first - rpose;
+    Vec2 alfaEnd = end - rpose;
+    double deltaFi = atan2(alfaEnd.y, alfaEnd.x) - atan2(alfaFirst.y,alfaFirst.x);
+    cout<<"end alfa: "<<atan2(alfaEnd.y, alfaEnd.x)*180/PI<<" first :"<<atan2(alfaFirst.y,alfaFirst.x)*180/PI<<endl;
     if(abs(deltaFi) > PI) {
         if(deltaFi < 0) {
             deltaFi = 2*PI + deltaFi;
@@ -299,7 +334,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
         nextend = inter.second;
         ef = end -first;;
         nef = nextend - nextfirst;
-        if( Distance(end,nextfirst) <= r ) {
+        if( Distance(end,nextfirst) <= r*2 ) {
             double deltaFi = (atan2(ef.y, ef.x) - atan2(nef.y,nef.x));
             if(abs(deltaFi) > PI) {
                 if(deltaFi < 0) {
@@ -316,7 +351,8 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
         goal = nextfirst - end;
         pose.x = end.x;
         pose.y = end.y;
-        tempBuf = DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        start = start;
+        tempBuf = DrawCircle(start,senser/3,120*PI/180,TARGET,true);
         targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;
@@ -327,7 +363,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
         inter = ClosestFirst(obstacles[i]);
         first = inter.first;
         end = inter.second;
-        start = end - first;
+        start = first - end;
         if(i - 1 < 0) {
             inter = ClosestFirst(obstacles[obstacles.size() - 1]);
         }
@@ -354,7 +390,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
         }
         pose.x = first.x;
         pose.y = first.y;
-        tempBuf = DrawCircle(start,senser/3,160*PI/180,TARGET,true);
+        tempBuf = DrawNegativCircle(start,senser/3,120*PI/180,TARGET,true);
         targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;

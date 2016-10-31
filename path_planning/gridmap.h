@@ -45,6 +45,7 @@ public:
     Vec2 Vec2QBaseVector(Vec2 qb);
     int MapIndex(Vec2 index);
     std::vector<int> DrawCircle(Vec2 start, double radius,double rad, int value, bool stoppable);
+    std::vector<int> DrawNegativCircle(Vec2 start, double radius, double rad, int value, bool stoppable);
     void UpgradeKnownGrid(std::vector<AncientObstacle *> &obstacles);
     void UpgradeTargets(std::vector<AncientObstacle *> &obstacles);
     std::pair<Vec2,Vec2> ClosestFirst(AncientObstacle * obstacle);
