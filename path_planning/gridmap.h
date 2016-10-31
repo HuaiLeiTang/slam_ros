@@ -47,12 +47,21 @@ public:
     std::vector<int> DrawCircle(Vec2 start, double radius,double rad, int value, bool stoppable);
     std::vector<int> DrawNegativCircle(Vec2 start, double radius, double rad, int value, bool stoppable);
     void UpgradeKnownGrid(std::vector<AncientObstacle *> &obstacles);
-    void UpgradeTargets(std::vector<AncientObstacle *> &obstacles);
+    void UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV);
     std::pair<Vec2,Vec2> ClosestFirst(AncientObstacle * obstacle);
     Vec2 MapIndexInverse(int index);
     Vec2 NextGoal();
+    std::vector<AncientObstacle*> SortObstacles(std::vector<AncientObstacle *> &obstacles);
     static constexpr double r = 10;
     static constexpr double senser = 500;
+};
+
+class ObsVec {
+public:
+    ObsVec();
+    ObsVec(AncientObstacle* obs,Vec2 firstPoint);
+    AncientObstacle* obspointer;
+    Vec2 firstPoint;
 };
 
 #endif // GRIDMAP_H

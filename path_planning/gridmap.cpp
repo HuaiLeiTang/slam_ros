@@ -1,5 +1,33 @@
 #include "gridmap.h"
 
+ObsVec::ObsVec(AncientObstacle *obs, Vec2 firstPoint): firstPoint(firstPoint) {
+    obspointer = obs;
+}
+
+inline bool operator==(const ObsVec& va, const ObsVec& vb) {
+        return false;
+}
+
+bool operator<(const ObsVec& va, const ObsVec& vb)
+{
+    double alfa = atan2(va.firstPoint.y,va.firstPoint.x);
+    double beta = atan2(vb.firstPoint.y,vb.firstPoint.x);
+    if((alfa + PI) > (alfa + PI))
+        return true;
+    else
+        return false;
+}
+
+bool operator>(const ObsVec& va, const ObsVec& vb)
+{
+    double alfa = atan2(va.firstPoint.y,va.firstPoint.x);
+    double beta = atan2(vb.firstPoint.y,vb.firstPoint.x);
+    if((alfa + PI) > (alfa + PI))
+        return true;
+    else
+        return false;
+}
+
 GridMap::GridMap(float resolution, int size, ros::NodeHandle *handler): resolution(resolution), offset(size,size), mapHeight(2*size),
     mapWidth(2*size), targets(), size(size) {
     this->handle = handler;
@@ -303,7 +331,29 @@ std::pair<Vec2,Vec2> GridMap::ClosestFirst(AncientObstacle * obstacle) {
     return ret;
 }
 
-void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
+int compareObsVec (const void * a, const void * b)
+{
+  if ( *(ObsVec*)a <  *(ObsVec*)b ) return -1;
+  if ( *(ObsVec*)a == *(ObsVec*)b ) return 0;
+  if ( *(ObsVec*)a >  *(ObsVec*)b ) return 1;
+}
+
+std::vector<AncientObstacle*> GridMap::SortObstacles(std::vector<AncientObstacle *> &obstacles) {
+    std::vector<ObsVec> ret;
+    for(int i = 0; i < obstacles.size(); i++) {
+        ret.push_back(ObsVec(obstacles[i],obstacles[i]->FirstPoint()));
+    }
+    qsort(&ret[0], ret.size(), sizeof(ObsVec), compareObsVec);
+    vector<AncientObstacle*> sortret;
+    for(int i = 0; i < ret.size(); i++) {
+        sortret.push_back(ret[i].obspointer);
+    }
+    return sortret;
+}
+
+void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
+    vector<AncientObstacle *> obstacles;
+    obstacles = SortObstacles(obstaclesV);
     Vec2 rpose(pose.x,pose.y);
     Vec2 first;
     Vec2 nextfirst;
@@ -335,18 +385,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
         ef = end -first;;
         nef = nextend - nextfirst;
         if( Distance(end,nextfirst) <= r*2 ) {
-            double deltaFi = (atan2(ef.y, ef.x) - atan2(nef.y,nef.x));
-            if(abs(deltaFi) > PI) {
-                if(deltaFi < 0) {
-                    deltaFi = 2*PI + deltaFi;
-                }
-                else {
-                    deltaFi = deltaFi - 2*PI;
-                }
-                if(deltaFi > 0) {
-                    continue;
-                }
-            }
+            continue;
         }
         goal = nextfirst - end;
         pose.x = end.x;
@@ -374,19 +413,8 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstacles) {
         previousFirst = inter.first;
         ef = end - first;
         pfe = previousFirst - previousEnd;
-        if(Distance(first,previousEnd) < r) {
-            double deltaFi = (atan2(ef.y, ef.x) - atan2(pfe.y,pfe.x));
-            if(abs(deltaFi) > PI) {
-                if(deltaFi < 0) {
-                    deltaFi = 2*PI + deltaFi;
-                }
-                else {
-                    deltaFi = deltaFi - 2*PI;
-                }
-                if(deltaFi > 0) {
-                    continue;
-                }
-            }
+        if(Distance(first,previousEnd) < r*2) {
+            continue;
         }
         pose.x = first.x;
         pose.y = first.y;
