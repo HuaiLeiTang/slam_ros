@@ -8,10 +8,6 @@
 #include "simplifyPath.h"
 #include "lineFitting.h"
 
-extern "C" {
-#include "extApi.h"
-}
-
 #define LINESIZE 100
 #define SLAMSIZE 203 // = LINESIZE*2+3
 
@@ -61,8 +57,8 @@ public:
     /// \brief issues move commands to the robot
     void walk(double r, double theta);
     /// \brief requests an IR sensor measurement
-    void robot2World1(simxFloat dist, simxFloat* pos);
-    void robot2World2(simxFloat* rot);
+    void robot2World1(double dist, double *pos);
+    void robot2World2(double *rot);
     void normalizeRadian(double& rad);
     bool getEllipse(float axii[2], float& angle);
     void localize(float* rot, const std::vector<line> &lines);
