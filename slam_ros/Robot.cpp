@@ -291,35 +291,6 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     posAdjustments.reserve(20);
     std::vector<line> extraLines;
     extraLines.reserve(20);
-    //for(int i = 0; i < lines.size(); ++i)
-    //{
-    /*double z[2] = {lines[i].alfa,
-                   lines[i].r
-                  };
-    gsl_matrix_view z_v = gsl_matrix_view_array(z, 2, 1);
-
-    //for(int j = 0; j < j < this->lineCount; ++j){
-    //one of the currently observed line polar coordinates
-
-
-    std::cout<< "\n Robot::localize: new line positions in robot ref frame " << z[0] << "  " << z[1];
-    //one of the previously saved line polar coordinates
-    double m[2] = {oldLines[j].alfa, oldLines[j].r};    //PENDING; PREVIOUS map data goes here
-    std::cout<< " \n Robot::localize: old line positions in world ref frame: " << m[0] << "  " << m[1];
-
-    //double h[2] = {cos(x_pre[2])*(m[0] - x_pre[0]) + sin(x_pre[2])*(m[1] - x_pre[1]),
-    //cos(x_pre[2])*(m[1] - x_pre[1]) - sin(x_pre[2])*(m[0] - x_pre[0])
-    //};    //transforms m into robot reference frame
-    double h[2] = {m[0] - x_pre[2],
-                   m[1] - (x_pre[0]*cos(m[0]) + x_pre[1]*sin(m[0]))
-                  };    //transforms m into robot reference frame
-    normalizeRadian(h[0]);
-    gsl_matrix_view h_v = gsl_matrix_view_array(h, 2, 1);
-    std::cout<< "\n Robot::localize: old line positions in robot ref frame: " << h[0] << "  " << h[1];*/
-
-
-    //double K[SLAMSIZE*LINESIZE*2] = {0};
-    //gsl_matrix_view K_v = gsl_matrix_view_array(K, SLAMSIZE, 2*LINESIZE);
 
     std::vector<int> matchSavedIndexes;
     matchSavedIndexes.reserve(20);
@@ -558,12 +529,6 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 //--------------------------
 
 
-                //nulling 2 columns before copying the 2x2
-                /*for(int k = 0; k < LINESIZE*2; ++k){
-                    gsl_matrix_set(&S_v.matrix, k, j*2, 0);
-                    gsl_matrix_set(&S_v.matrix, k, j*2+1, 0);
-                }*/
-
                 //RESETING RUINED S (small) (is +R necessary?)
 
                 //double S_copy[4] = {0};
@@ -703,81 +668,6 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             }
         }
     }*/
-
-
-    //inv(S)
-    /*double S_inv[4] = {0, 0,
-                       0, 0
-                      };*/
-    /*double S_inv[LINESIZE*2*LINESIZE*2] = {0};
-    int s;
-
-    gsl_matrix_view S_inv_v = gsl_matrix_view_array(S_inv, LINESIZE*2, LINESIZE*2);
-    gsl_permutation* perm = gsl_permutation_alloc(LINESIZE);
-    errorCodes.push_back(gsl_linalg_LU_decomp(&S_v.matrix, perm, &s));
-    errorCodes.push_back(gsl_linalg_LU_invert(&S_v.matrix, perm, &S_inv_v.matrix));
-
-    */
-
-    // v_trans*inv(S)*v <= g^2          MAHALANOBIS
-    /*double v_trans__S_inv[2] = {0, 0};
-    double v_trans__S_inv__v[1] = {0};
-    double g_2 = 0.1;                                 //Mahalanobis distance constant goes here
-    gsl_matrix_view v_trans__S_inv_v = gsl_matrix_view_array(v_trans__S_inv, 1, 2);
-    gsl_matrix_view v_trans__S_inv__v_v = gsl_matrix_view_array(v_trans__S_inv__v, 1, 1);
-    errorCodes.push_back(gsl_matrix_sub(&z_v.matrix, &h_v.matrix));   //z used as temporary for innovation vector, possible vector optimaztion
-    //z[0] = std::min(std::fmod(std::abs(z[0]),(2*M_PI)), 2*M_PI - std::fmod(std::abs(z[0]),(2*M_PI)));
-    //z[0] = z[0] > 2.0*M_PI ? z[0]-2.0*M_PI : (z[0] < -2.0*M_PI ? z[0]+2.0*M_PI : z[0]);
-    if(std::abs(z[0] - 2.0*M_PI) < std::abs(z[0])){
-        z[0] -= 2.0*M_PI;
-    }else if(std::abs(z[0] + 2.0*M_PI) < std::abs(z[0])){
-        z[0] += 2.0*M_PI;
-    } //else do nothing
-
-    std::cout << "\ndebug: distance: alfa: " << z[0] << " r: " << z[1];
-
-    errorCodes.push_back(gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, &z_v.matrix, &S_inv_v.matrix, 0.0, &v_trans__S_inv_v.matrix));
-    errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &v_trans__S_inv_v.matrix, &z_v.matrix, 0.0, &v_trans__S_inv__v_v.matrix));*/
-
-    //DEBUG
-    /*std::cout << std::endl;
-            for (int i = 0; i < 4; ++i)
-            {
-                std::cout << S_inv[i];
-                std::cout << " ";
-                if(i%2 == 1)
-                {
-                    std::cout << "\n";
-                }
-            }*/
-    //v_trans__S_inv__v[0] = std::abs(v_trans__S_inv__v[0]);
-    /*if(v_trans__S_inv__v[0] > g_2){
-        std::cout <<"\ncontinued, Mahalanobis: ";
-        std::cout << std::to_string(v_trans__S_inv__v[0]);
-        if(j == oldLines.size()-1){        //no match found for new line
-            extraLines.push_back(lines[i]);
-            std::cout << "\nno match found";
-            break;
-        }
-        continue;           //if the match was not found, try matching with the next old line
-    }
-    matchesNum++;
-    std::cout << "\n!!! match found, Mahalanobis: ";
-    std::cout << std::to_string(v_trans__S_inv__v[0]);*/
-
-    // P_t0 = P_pre - K*S*K_trans = P_pre - P_pre*Hx_trans*K_trans     because P_pre*Hx_trans is already calculated
-    /*double K__S[6] = {0, 0,
-                              0, 0,
-                              0, 0
-                             };*/
-    /*double P_pre__Hx_trans__K_trans[9] = {0, 0, 0,
-                                          0, 0, 0,
-                                          0, 0, 0};
-    gsl_matrix_view P_pre__Hx_trans__K_trans_v = gsl_matrix_view_array(P_pre__Hx_trans__K_trans, 3, 3);*/
-    //gsl_matrix_view K__S_v = gsl_matrix_view_array(K__S, 3, 2);
-    //gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &K_v.matrix, &S_v.matrix, 0.0, &K__S_v.matrix);
-    //errorCodes.push_back(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, &P_pre__Hx_trans_v.matrix, &K_v.matrix, 0.0, &P_pre__Hx_trans__K_trans_v.matrix));
-    //errorCodes.push_back(gsl_matrix_sub(&P_pre_v.matrix, &P_pre__Hx_trans__K_trans_v.matrix));   //is P_t0 changed?
     std::cout << "\n Covariance matrix:";
     for(int i = 0; i < 3; ++i){
         std::cout << std::endl;
@@ -989,7 +879,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     gsl_set_error_handler(NULL);
 
     //saving covariance data to file
-    std::ofstream covarFile("covar.txt");
+    /*std::ofstream covarFile("covar.txt");
 
     if(covarFile.is_open()){
         for(int i = 0; i < SLAMSIZE; ++i){
@@ -999,7 +889,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             covarFile << "\n";
         }
         covarFile.close();
-    }
+    }*/
 
 
         /*f = @(x, u) [x(1) + u(1)*cos(x(3) + u(2)); x(2) + u(1)*sin(x(3) + u(2)); x(3) + u(2)];
