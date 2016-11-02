@@ -5,6 +5,8 @@
 #include <vector>
 #include <array>
 
+#include "std_msgs/Float32MultiArray.h"
+
 #include "simplifyPath.h"
 #include "lineFitting.h"
 
@@ -47,6 +49,9 @@ public:
     double xPos;
     double yPos;
     double thetaPos;
+
+    /// \brief line endpoints stored for one cycle
+    std_msgs::Float32MultiArray lineIntervals;
 
     /// \brief Robot covariance matrix
     double P_t0[SLAMSIZE*SLAMSIZE];         //203*203 (100 lines)

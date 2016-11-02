@@ -14,7 +14,8 @@ foreach(i ${CMAKE_CXX_COMPILE_FEATURES})
 endforeach()
 
 #fix for VREP pthread_create bug
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 #collecting all base source files from main directory
 aux_source_directory(. SRC_LIST)

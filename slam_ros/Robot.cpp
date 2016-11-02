@@ -10,6 +10,8 @@
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_eigen.h"
 
+#include <ros/ros.h>
+
 #include <string>
 #include <iomanip>
 #include <fstream>
@@ -26,8 +28,7 @@ Robot::Robot(double x, double y, double theta)
     gsl_matrix_set(&P_t0_v.matrix, 0, 0, 0.05);
     gsl_matrix_set(&P_t0_v.matrix, 1, 1, 0.05);
     gsl_matrix_set(&P_t0_v.matrix, 2, 2, 0);
-    oldLines.reserve(500);
-    oldPoints.reserve(500);
+    lineIntervals.data.reserve(80);
 
     //oldLines.push_back(line(0, 5.0));       //ADR TEMP !!!
     //oldLines.push_back(line(M_PI/M_PI*180.0, 5.0));
@@ -770,6 +771,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         std::cout << "\nRobot::Locate(): Some matches were found...";
 
     }
+
     //saving all non-matched lines
     for(auto &lin : extraLines){
         //transforming to world reference frame
@@ -843,6 +845,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         if(errorCodes.back() != 0){
             std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
         }
+        //----------------------------------------------
 
         //Plx = Gx*[Prr, Prm]
         gsl_matrix_view Prx_v = gsl_matrix_submatrix(&P_t0_v.matrix, 0, 0, 3, 3 + savedLineCount*2);
@@ -857,12 +860,25 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         if(errorCodes.back() != 0){
             std::cout << "error index: " << errorCodes.size()-1 << " " << gsl_strerror(errorCodes.back()) << std::endl;
         }
-        //-----------------------
+        //-------------------------------------------
 
-        //gsl_matrix_set(&P_t0_v.matrix, 3+savedLineCount*2, 3+savedLineCount*2, 0.2);
-        //gsl_matrix_set(&P_t0_v.matrix, 3+savedLineCount*2+1, 3+savedLineCount*2+1, 0.2);
         ++savedLineCount;
+
+
+        //STORING LINE INTERVALS
+        if(lin.lineInterval.size() == 2){
+            float alpha = lin.lineInterval.front().alfa;
+            Point point = polar2descart(polar_point(alpha + this->thetaPos, lin.lineInterval.front().r + this->xPos*cos(alpha) + this->yPos*sin(alpha)));
+            lineIntervals.data.push_back(point.x);
+            lineIntervals.data.push_back(point.y);
+            alpha = lin.lineInterval.back().alfa;
+            point = polar2descart(polar_point(alpha + this->thetaPos, lin.lineInterval.back().r + this->xPos*cos(alpha) + this->yPos*sin(alpha)));
+            lineIntervals.data.push_back(point.x);
+            lineIntervals.data.push_back(point.y);
+        }
+        //-----------------------------------------------
     }
+
     std::cout << "\n Covariance matrix: \n";
     for(int i = 0; i < 13; ++i){
         std::cout << std::endl;

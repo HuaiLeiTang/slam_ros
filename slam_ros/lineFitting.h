@@ -8,7 +8,6 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_deriv.h>
 
-
 #define PI 3.14159265
 
 using namespace std;
@@ -17,6 +16,10 @@ using namespace std;
 std::vector<polar_point> descart2polar(std::vector<Point>& Points);
 
 std::vector<Point> polar2descart(std::vector<polar_point>& Points);
+Point polar2descart(polar_point polar_Points);
+polar_point descart2polar(Point Points);
+
+void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Point>& points);
 
 gsl_matrix* Covariancia(vector<polar_point> cov_data);
 

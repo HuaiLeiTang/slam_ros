@@ -98,6 +98,9 @@ int main(int argc,char* argv[])
 
     ros::NodeHandle nh;
     ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("robotPosition", 100);
+    ros::Publisher publines = nh.advertise<std_msgs::Float32MultiArray>("lines",100);
+    ros::Rate r(10);
+
     ros::Subscriber subEncoder = nh.subscribe<geometry_msgs::Vector3>("encoderPosition", 100, &encoderUpdate_cb);
     ros::Subscriber subMapping = nh.subscribe<std_msgs::Float32MultiArray>("mappingPoints", 10, &mapping_cb);
 
@@ -136,9 +139,15 @@ int main(int argc,char* argv[])
             //msg.rotation.y = 1.0;
             msg.rotation.z = angle;
             pubCov.publish(msg);
+
+            //Publishing line endpoints
+            publines.publish(rover->lineIntervals);
+            std::cout<<"\n Num Lines: "<< rover->lineIntervals.data.size()/4 <<endl;
+            rover->lineIntervals.data.clear();
+
         }
         ros::spinOnce();
-        usleep(500000);
+        r.sleep();
     }
     subEncoder.shutdown();
     subMapping.shutdown();
