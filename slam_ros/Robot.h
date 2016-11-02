@@ -8,17 +8,17 @@
 #include "simplifyPath.h"
 #include "lineFitting.h"
 
-extern "C" {
-#include "extApi.h"
-}
+#define LINESIZE 100
+#define SLAMSIZE 203 // = LINESIZE*2+3
 
 class Robot
 {
 private:
-    /// \brief forward kinematics matrix
-    double forKin[6];
-    /// \brief inverse kinematics matrix
-    double invKin[6];
+
+    /// \brief stored lines part of the extended robot state vector
+    double y[LINESIZE*2];              //LINESIZE number of lines
+    /// \brief number of lines saved in memory
+    int savedLineCount;
     /// \brief old polar coordinate points in world reference frame found by the sensors
     std::vector<polar_point> oldPoints;
     /// \brief old polar coordinate lines in world reference frame found by the sensor
@@ -28,11 +28,14 @@ private:
     /// \brief number of line matches found in one SLAM cycle
     int matchesNum;
 
+    /// \brief forward kinematics matrix
+    double forKin[6];
+    /// \brief inverse kinematics matrix
+    double invKin[6];
     /// \brief derives the forward kinamatics matrix from the parameters of the robot
     void forwardKin();
     /// \brief derives the inverse kinematics matrix from the parameters of the robot
     void inverseKin();
-
     /// \brief calculates velocity vector of the robot from the angular velocity of the 2 wheels (using forward kinematics
     void fiToXi(double*, double*);
     /// \brief calculates the angular velocitiy of the 2 wheels from the velocity vector of th robot (using inverse kinematics)
@@ -44,8 +47,9 @@ public:
     double xPos;
     double yPos;
     double thetaPos;
+
     /// \brief Robot covariance matrix
-    double P_t0[9];
+    double P_t0[SLAMSIZE*SLAMSIZE];         //203*203 (100 lines)
 
     Robot(double x, double y, double theta);
     ~Robot();
@@ -53,8 +57,8 @@ public:
     /// \brief issues move commands to the robot
     void walk(double r, double theta);
     /// \brief requests an IR sensor measurement
-    void robot2World1(simxFloat dist, simxFloat* pos);
-    void robot2World2(simxFloat* rot);
+    void robot2World1(double dist, double *pos);
+    void robot2World2(double *rot);
     void normalizeRadian(double& rad);
     bool getEllipse(float axii[2], float& angle);
     void localize(float* rot, const std::vector<line> &lines);

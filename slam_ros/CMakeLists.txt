@@ -20,19 +20,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 aux_source_directory(. SRC_LIST)
 
 #collecting header directory paths
-set(INCLUDE_DIRS "remoteApi")
-list(APPEND INCLUDE_DIRS .)
-list(APPEND INCLUDE_DIRS "remoteApi/include")
+set(INCLUDE_DIRS .)
+#list(APPEND INCLUDE_DIRS "remoteApi")
+#list(APPEND INCLUDE_DIRS "remoteApi/include")
 
 #adding header directories
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${INCLUDE_DIRS})
 
 #manually adding VREP external api files
-list(APPEND SRC_LIST "./remoteApi/extApi.h")
-list(APPEND SRC_LIST "./remoteApi/extApi.c")
-list(APPEND SRC_LIST "./remoteApi/extApiPlatform.h")
-list(APPEND SRC_LIST "./remoteApi/extApiPlatform.c")
+#list(APPEND SRC_LIST "./remoteApi/extApi.h")
+#list(APPEND SRC_LIST "./remoteApi/extApi.c")
+#list(APPEND SRC_LIST "./remoteApi/extApiPlatform.h")
+#list(APPEND SRC_LIST "./remoteApi/extApiPlatform.c")
 
 #preprocessor definitions required to instantiate project executable as a client of VREP (running in parallel with the VREP external api server plugin)
 add_definitions(-DNON_MATLAB_PARSING)

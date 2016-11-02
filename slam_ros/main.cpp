@@ -23,7 +23,7 @@
 #include "geometry_msgs/Transform.h"
 #include "geometry_msgs/Vector3.h"
 #include "Robot.h"
-#include "Vrep.h"
+//#include "Vrep.h"
 
 bool update = true;
 float rot[2];
@@ -38,7 +38,7 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
 
     //saving points with gaussian noise
     std::default_random_engine generator;
-    std::normal_distribution<double> distribution(0.0,0.03);        //3cm standard deviation
+    std::normal_distribution<double> distribution(0.0,0.02);        //3cm standard deviation
     for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
         points[points.size()-1].alfa = msg.data[i+1] - M_PI;
@@ -130,8 +130,10 @@ int main(int argc,char* argv[])
             }else{
                 std::cout <<"main: An error occured while computing the eigenvalues and vectors";
             }
-            msg.rotation.x = axii[1];
-            msg.rotation.y = axii[0];
+            msg.rotation.x = axii[0];
+            //msg.rotation.x = 1.0;
+            msg.rotation.y = axii[1];
+            //msg.rotation.y = 1.0;
             msg.rotation.z = angle;
             pubCov.publish(msg);
         }
