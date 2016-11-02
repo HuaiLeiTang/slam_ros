@@ -114,6 +114,10 @@ int GridMap::MapIndex(Vec2 qindex) {
 }
 
 void GridMap::SetGrid(Vec2 grid, int value) {
+    if((MapIndex(grid) < 0 ) || (MapIndex(grid) > dataSize)) {
+        cout<<"Invalid Vec2"<<endl;
+        return;
+    }
     if(value == OCCUPANCY) {
         data[MapIndex(grid)] = value;
         return;
@@ -125,8 +129,6 @@ void GridMap::SetGrid(Vec2 grid, int value) {
 }
 
 std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
- //   Vec2 kvantF = Vec2Quantization(firstPoint);
- //   Vec2 kvantE = Vec2Quantization(endPoint);
     Vec2 F = firstPoint;
     Vec2 kvantF;
     Vec2 FE_norm = endPoint - firstPoint;
@@ -135,12 +137,13 @@ std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bo
     if(value == TARGET) {
         F = F + FE_norm*5;
     }
- //   Vec2 compass;
     vector<int> buf;
     while(true) {
         kvantF = Vec2Quantization(F);
         SetGrid(kvantF,value);
-        buf.push_back(MapIndex(kvantF));
+        if(data[MapIndex(kvantF)] == TARGET){
+            buf.push_back(MapIndex(kvantF));
+        }
         F = F + FE_norm;
         if(Distance(F,endPoint) < r/2) {
             break;
@@ -206,10 +209,10 @@ void GridMap::DrawCircle() {
     double dfi = PI*2/num;
     polar_point iter;
     iter.alfa = 0;
-    iter.r = 1.5; // nem klne hogy tul nagy legyen
+    iter.r = 100; // nem klne hogy tul nagy legyen
     vector<polar_point> circ;
     for(int i = 0; i < num + 1; i++) {
-        iter.alfa = PI/4 + dfi*(double)i;
+        iter.alfa = dfi*(double)i;
         iter.alfa = iter.alfa > M_PI ? iter.alfa-2.0*M_PI : iter.alfa;
         circ.push_back(iter);
     }
@@ -376,7 +379,6 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
     double alfa;
     for(int i = 0; i < obstacles.size(); i++) {
         alfa = atan2(obstacles[i]->FirstPoint().y,obstacles[i]->FirstPoint().x);
-        cout<<"alfa "<<alfa<<endl;
         inter = ClosestFirst(obstacles[i]);
         first = inter.first;
         end = inter.second;
@@ -391,8 +393,6 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         nextend = inter.second;
         ef = end -first;;
         nef = nextend - nextfirst;
-        cout<<"first "<<end<<" "<<nextfirst<<endl;
-        cout<<"dist asd"<<Distance(end,nextfirst)<< endl;
         if( Distance(end,nextfirst) <= resolution*2 ) {
             continue;
         }

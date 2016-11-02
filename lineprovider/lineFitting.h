@@ -22,6 +22,7 @@ polar_point descart2polar(Point Points);
 polar_point descart2polar(Vec2 vec);
 
 void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Point>& points);
+void polar2descart(polar_point polar_Points, Vec2& temp_point);
 
 gsl_matrix* Covariancia(vector<polar_point> cov_data);
 

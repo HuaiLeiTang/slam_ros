@@ -139,9 +139,13 @@ StraightObstacle::StraightObstacle():firstPoint(), endPoint() {
 StraightObstacle::StraightObstacle(Vec2 firstPoint, Vec2 endpoint) {
     this->firstPoint = firstPoint;
     this->endPoint = endpoint;
+    cout<<"Start Obs"<<endl;
+    cout<<"firstPoint "<< this->firstPoint<<endl;
+    cout<<"endPOint "<<this->endPoint<<endl;
     type = lineObstacle;
     Vec2 EF = endpoint - firstPoint;
     Vec2 EF_norm = EF.Norm();
+    cout<<"EF_nrom "<<EF.Norm()<<endl;
     Vec2 FE_nrom = EF_norm*(-1);
     Vec2 UF = EF_norm;
     UF.RoundPoz90();

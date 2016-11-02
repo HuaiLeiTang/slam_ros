@@ -175,6 +175,12 @@ Point polar2descart(polar_point polar_Points)
     return temp_point;
 }
 
+void polar2descart(polar_point polar_Points, Vec2& temp_point)
+{
+    temp_point.x = cos(polar_Points.alfa)*polar_Points.r;
+    temp_point.y = sin(polar_Points.alfa)*polar_Points.r;
+}
+
 void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Point>& points)
 {
     Point temp_point;

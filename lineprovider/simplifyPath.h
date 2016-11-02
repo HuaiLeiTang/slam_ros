@@ -16,6 +16,7 @@
 #include <cmath>
 #include <algorithm>
 #include <gsl/gsl_matrix.h>
+#include "vec2.h"
 
 
 //"Point" struct stand for each GPS coordinates(x,y). Methods related are used only for simplification of calculation in implementation.

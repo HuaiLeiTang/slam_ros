@@ -32,7 +32,7 @@ double roundParam;
 Vec2 temp;
 Node target(-700,-700);
 
-RRTs test(1000,1000);
+RRTs test(1500,1500);
 
 vector< AncientObstacle* >  LineMapGenerator(void) {
     vector<double> alfa;
@@ -133,9 +133,7 @@ void lines_cb(const std_msgs::Float32MultiArray::ConstPtr& array) {
         newobs = new StraightObstacle(lineIntervals[i],lineIntervals[i + 1]);
         robstacles.push_back(newobs);
     }
-    cout<<"test obs elotte: "<<test.obstacles.size()<<endl;
     test.AddObstacles(robstacles);
-    cout<<"test obs utana: "<<test.obstacles.size()<<endl;
     for(int i = 0; i < test.obstacles.size(); i++) {
         if(test.obstacles[i]->type == lineObstacle) {
             test.obstacles[i]->Draw(linefile);
@@ -158,9 +156,10 @@ void pose_cb(geometry_msgs::Vector3 msg) {
     newpose = true;
     Vec2 temptarget(target.x,target.y);
     Vec2 temppose(pose.x,pose.y);
-  /*  if(Distance(temppose,temptarget) < 50) { // 10 cm sugaru körön belül vagyunk
+    if(Distance(temppose,temptarget) < 20) { // 10 cm sugaru körön belül vagyunk
         targetActive = false;
-    }*/
+        cout<<"Reach Traget!"<<endl;
+    }
     if(inTurn) {
         go = true;
         inTurn = false;
@@ -186,7 +185,7 @@ ros::Publisher pubCommand = n.advertise<geometry_msgs::Vector3>("/motionCommand"
 ros::Rate s(10);
 while(ros::ok) {
     if(firstCilkus) {
-        if(pubCommand.getNumSubscribers() == 1) {
+        if((pubCommand.getNumSubscribers() == 1) && (sublines.getNumPublishers() == 1)) {
             command.x = 1;
             command.y = 0;
             command.z = 0;
@@ -195,20 +194,22 @@ while(ros::ok) {
         }
     }
     if((newlines == true) && (newpose == true)) {
+        cout<<"New Ciklus"<<endl;
         gmap.SetRobotPose(pose);
+        cout<<"Set Robot Pose"<<endl;
         gmap.DrawObstacle(robstacles);
+        cout<<"DrawObstacle"<<endl;
         gmap.UpgradeKnownGrid(robstacles);
+        cout<<"UpgradeKnownGrid"<<endl;
         gmap.UpgradeTargets(robstacles);
-      /*  test.SetPose(pose);
-        test.PathPlaning(target);
-        test.ExportGraf();*/
+        cout<<"UpgradeTargets"<<endl;
         if(tripEnd) {
+            cout<<"New Trip"<<endl;
             tripEnd = false;
-            if(false) { // ide !(!targetActive kell
+            if(!targetActive) { // ide !(!targetActive kell
                 targetActive = true;
                 temp = gmap.NextGoal();
-                cout<<"New Target----------- "<<temp<<endl;
-                cout<<"--------------------------"<<endl;
+                cout<<"New Target: "<<temp<<endl;
                 if(temp.x == 0 && temp.y == 0) {
                     cout<<"No more targets"<<endl;
                     exit(1);
@@ -217,7 +218,9 @@ while(ros::ok) {
                 target.y = temp.y;
             }
             test.SetPose(pose);
+            cout<<"Path Planning..."<<endl;
             test.PathPlaning(target);
+            cout<<"Path Planning end!"<<endl;
             test.ExportGraf();
             path.clear();
             path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
