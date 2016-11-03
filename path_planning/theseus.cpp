@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 {
 ros::init(argc, argv, "theseus");
 ros::NodeHandle n;
-GridMap gmap(22,200,&n);
+GridMap gmap(37,200,&n);
 ros::Publisher thesues_pub = n.advertise<std_msgs::Float32MultiArray>("path", 1000);
 ros::Subscriber sublines = n.subscribe<std_msgs::Float32MultiArray>("lines",100,lines_cb);
 ros::Subscriber subpose = n.subscribe<geometry_msgs::Vector3>("robotPose",100,pose_cb);
@@ -225,7 +225,7 @@ while(ros::ok) {
             path.clear();
             path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
             path.push_back(test.dijkPath[test.dijkPath.size() - 2]);
-            turn = true;
+            turn = true; // TODO 5000res rrrt ciklus után uj célpont kérése
         }
         test.Reset();
         newlines = false;

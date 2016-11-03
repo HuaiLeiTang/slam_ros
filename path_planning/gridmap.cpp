@@ -135,7 +135,7 @@ std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bo
     FE_norm = FE_norm.Norm();
     FE_norm = FE_norm * (r/2);
     if(value == TARGET) {
-        F = F + FE_norm*5;
+        F = F + FE_norm*15;
     }
     vector<int> buf;
     while(true) {
@@ -400,7 +400,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         pose.x = end.x;
         pose.y = end.y;
         start = start;
-        tempBuf = DrawCircle(start,senser/3,120*PI/180,TARGET,true);
+        tempBuf = DrawCircle(start,senser/3,90*PI/180,TARGET,true);
         targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;
@@ -427,7 +427,7 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         }
         pose.x = first.x;
         pose.y = first.y;
-        tempBuf = DrawNegativCircle(start,senser/3,120*PI/180,TARGET,true);
+        tempBuf = DrawNegativCircle(start,senser/3,90*PI/180,TARGET,true);
         targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;
