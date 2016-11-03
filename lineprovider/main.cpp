@@ -46,10 +46,10 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     newlines = true;
 }
 
-void pose_cb(geometry_msgs::Vector3 msg) {
-    pose.x = msg.x;
-    pose.y = msg.y;
-    theta = msg.z;
+void pose_cb(geometry_msgs::Transform msg) {
+    pose.x = msg.translation.x;
+    pose.y = msg.translation.y;
+    theta = msg.translation.z;
     newpose = true;
 }
 
@@ -86,7 +86,7 @@ int main(int argc,char* argv[])
     ros::init(argc2, argv2, "linesprovider");
     ros::NodeHandle nh;
     ros::Subscriber subMapping = nh.subscribe<std_msgs::Float32MultiArray>("mappingPoints", 10, &mapping_cb);
-    ros::Subscriber subPose = nh.subscribe<geometry_msgs::Vector3>("robotPose",10,&pose_cb);
+    ros::Subscriber subPose = nh.subscribe<geometry_msgs::Transform>("robotPosition",10,&pose_cb);
     ros::Publisher publines = nh.advertise<std_msgs::Float32MultiArray>("lines",100);
     ros::Rate r(10);
     while(ros::ok) {

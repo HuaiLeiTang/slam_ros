@@ -385,6 +385,12 @@ RRTs::RRTs(std::vector<AncientObstacle*> map,Node firstNode ,double maxX, double
 RRTs::RRTs(double maxX, double maxY): maxMapSizeX(maxX),
     maxMapSizeY(maxY), graf(), path(), reducedPath(), sendPath(), dijkPath(), visibleGraft() {
     srand (time(NULL));
+    graf.reserve(10000);
+    path.reserve(2000);
+    reducedPath.reserve(2000);
+    sendPath.reserve(1000);
+    dijkPath.reserve(2000);
+    visibleGraft.reserve(2000);
 }
 
 
