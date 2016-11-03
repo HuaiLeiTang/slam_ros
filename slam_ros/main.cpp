@@ -121,7 +121,7 @@ int main(int argc,char* argv[])
 
             msg.translation.x = rover->xPos;
             msg.translation.y = rover->yPos;
-            msg.translation.z = 0;
+            msg.translation.z = rover->thetaPos;
 
             float axii[2];
             float angle;
