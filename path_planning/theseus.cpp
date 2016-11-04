@@ -177,7 +177,7 @@ ros::init(argc, argv, "theseus");
 ros::NodeHandle n;
 GridMap gmap(37,200,&n);
 ros::Publisher thesues_pub = n.advertise<std_msgs::Float32MultiArray>("path", 1000);
-ros::Subscriber sublines = n.subscribe<std_msgs::Float32MultiArray>("lines",100,lines_cb);
+ros::Subscriber sublines = n.subscribe<std_msgs::Float32MultiArray>("lines_1",100,lines_cb);
 ros::Subscriber subpose = n.subscribe<geometry_msgs::Vector3>("robotPose",100,pose_cb);
 ros::Publisher pubCommand = n.advertise<geometry_msgs::Vector3>("/motionCommand",100);
 //std_msgs::Float32MultiArray path;

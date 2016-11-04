@@ -80,6 +80,11 @@ void Vec2::RoundPoz90() {
     x = -x;
 }
 
+void Vec2::Rotate(double theta) {
+    x = cos(theta)*x - sin(theta)*y;
+    y = x*sin(theta) + y*cos(theta);
+}
+
 double SubtendedAngle(Vec2 a, Vec2 b, Vec2 c) {
     double g = ((pow(a.Lenght(),2) + pow(b.Lenght(),2) - pow(c.Lenght(),2))/(2*a.Lenght()*b.Lenght()));
     if(g > 1) {

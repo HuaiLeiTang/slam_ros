@@ -131,19 +131,24 @@ void GridMap::SetGrid(Vec2 grid, int value) {
 std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bool stoppable) {
     Vec2 F = firstPoint;
     Vec2 kvantF;
+    bool newtarget = true;
     Vec2 FE_norm = endPoint - firstPoint;
     FE_norm = FE_norm.Norm();
     FE_norm = FE_norm * (r/2);
     if(value == TARGET) {
-        F = F + FE_norm*15;
+        F = F + FE_norm*10;
     }
     vector<int> buf;
     while(true) {
         kvantF = Vec2Quantization(F);
+        if(data[MapIndex(kvantF)] == TARGET) {
+            newtarget = false;
+        }
         SetGrid(kvantF,value);
-        if(data[MapIndex(kvantF)] == TARGET){
+        if((data[MapIndex(kvantF)] == TARGET) && newtarget){
             buf.push_back(MapIndex(kvantF));
         }
+        newtarget = true;
         F = F + FE_norm;
         if(Distance(F,endPoint) < r/2) {
             break;
@@ -399,8 +404,8 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         goal = nextfirst - end;
         pose.x = end.x;
         pose.y = end.y;
-        start = start;
-        tempBuf = DrawCircle(start,senser/3,90*PI/180,TARGET,true);
+        start.Rotate(PI/3);
+        tempBuf = DrawCircle(start,senser/3,45*PI/180,TARGET,true);
         targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;
@@ -427,7 +432,8 @@ void GridMap::UpgradeTargets(std::vector<AncientObstacle *> &obstaclesV) {
         }
         pose.x = first.x;
         pose.y = first.y;
-        tempBuf = DrawNegativCircle(start,senser/3,90*PI/180,TARGET,true);
+        start.Rotate(-PI/3);
+        tempBuf = DrawNegativCircle(start,senser/3,45*PI/180,TARGET,true);
         targets.push_back(tempBuf);
         pose.x = rpose.x;
         pose.y = rpose.y;

@@ -21,6 +21,7 @@ public:
     void Merolegese();
     void RoundPoz90();
     void RoundMinusz90();
+    void Rotate(double theta);
     double x;
     double y;
 };
