@@ -139,13 +139,9 @@ StraightObstacle::StraightObstacle():firstPoint(), endPoint() {
 StraightObstacle::StraightObstacle(Vec2 firstPoint, Vec2 endpoint) {
     this->firstPoint = firstPoint;
     this->endPoint = endpoint;
-    cout<<"Start Obs"<<endl;
-    cout<<"firstPoint "<< this->firstPoint<<endl;
-    cout<<"endPOint "<<this->endPoint<<endl;
     type = lineObstacle;
     Vec2 EF = endpoint - firstPoint;
     Vec2 EF_norm = EF.Norm();
-    cout<<"EF_nrom "<<EF.Norm()<<endl;
     Vec2 FE_nrom = EF_norm*(-1);
     Vec2 UF = EF_norm;
     UF.RoundPoz90();
@@ -436,7 +432,7 @@ Node* RRTs::ClosestNode(Node *randNode) {
 Node* RRTs::RandNode() {
     Node* randNode;
     int choice = rand() % 100;
-    if( choice < 95) {
+    if( choice < 80) {
         randNode = new Node;
         randNode->x = (double)((rand() % (int)(200*maxMapSizeX)) - (100*maxMapSizeX))/100;
         randNode->y = (double)((rand() % (int)(200*maxMapSizeY)) - (100*maxMapSizeY))/100;
@@ -451,7 +447,19 @@ void RRTs::PathPlaning(Node goal) {
     Node* randNode;
     Node* closestNode;
     Vec2* temprand;
+    int i = 0;
+    int t = 1;
     do {
+        i++;
+        if(i == 1000) {
+            i = 0;
+            t++;
+            cout<<"Path planning ciklus: "<<t<<"000"<<endl;
+            if(t == 4) {
+               dijkPath.clear();
+               return;
+            }
+        }
         randNode = RandNode();
         closestNode = ClosestNode(randNode);
         if(!IsPartOfGraf(closestNode)) {
@@ -559,6 +567,12 @@ void RRTs::Reset() {
     this->path.clear();
     this->reducedPath.clear();
     this->sendPath.clear();
+    graf.reserve(10000);
+    path.reserve(2000);
+    reducedPath.reserve(2000);
+    sendPath.reserve(1000);
+    dijkPath.reserve(2000);
+    visibleGraft.reserve(2000);
 }
 
 void RRTs::SetPose(Vec2 pose) {

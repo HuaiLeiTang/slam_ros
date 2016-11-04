@@ -87,7 +87,7 @@ int main(int argc,char* argv[])
     ros::NodeHandle nh;
     ros::Subscriber subMapping = nh.subscribe<std_msgs::Float32MultiArray>("mappingPoints", 10, &mapping_cb);
     ros::Subscriber subPose = nh.subscribe<geometry_msgs::Transform>("robotPosition",10,&pose_cb);
-    ros::Publisher publines = nh.advertise<std_msgs::Float32MultiArray>("lines",100);
+    ros::Publisher publines = nh.advertise<std_msgs::Float32MultiArray>("lines_1",100);
     ros::Rate r(10);
     while(ros::ok) {
         if( (newlines == true) && (newpose == true) ) {

@@ -25,6 +25,7 @@ bool turn = false;
 bool inTurn = false;
 bool go = false;
 bool firstCilkus = true;
+bool noPath = false;
 geometry_msgs::Vector3 command;
 vector<Vec2> path;
 double roundParam;
@@ -156,7 +157,7 @@ void pose_cb(geometry_msgs::Vector3 msg) {
     newpose = true;
     Vec2 temptarget(target.x,target.y);
     Vec2 temppose(pose.x,pose.y);
-    if(Distance(temppose,temptarget) < 20) { // 10 cm sugaru körön belül vagyunk
+    if(Distance(temppose,temptarget) < 30) { // 10 cm sugaru körön belül vagyunk
         targetActive = false;
         cout<<"Reach Traget!"<<endl;
     }
@@ -221,16 +222,29 @@ while(ros::ok) {
             cout<<"Path Planning..."<<endl;
             test.PathPlaning(target);
             cout<<"Path Planning end!"<<endl;
-            test.ExportGraf();
             path.clear();
-            path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
-            path.push_back(test.dijkPath[test.dijkPath.size() - 2]);
-            turn = true; // TODO 5000res rrrt ciklus után uj célpont kérése
+            if(test.dijkPath.size() != 0) {
+                test.ExportGraf();
+                path.push_back(test.dijkPath[test.dijkPath.size() - 1]);
+                path.push_back(test.dijkPath[test.dijkPath.size() - 2]);
+                turn = true; // TODO 5000res rrrt ciklus után uj célpont kérése
+            }
+            else {
+                noPath = true;
+            }
         }
         test.Reset();
         newlines = false;
         newpose = false;
         gmap.PublishMap();
+        if(noPath) {
+            cout<<"No path"<<endl;
+            newlines = true;
+            newpose = true;
+            tripEnd = true;
+            targetActive = false;
+            noPath = false;
+        }
     }
     if(turn) {
         turn = false;

@@ -98,7 +98,7 @@ int main(int argc,char* argv[])
 
     ros::NodeHandle nh;
     ros::Publisher pubCov = nh.advertise<geometry_msgs::Transform>("robotPosition", 100);
-    ros::Publisher publines = nh.advertise<std_msgs::Float32MultiArray>("liness",100);
+    ros::Publisher publines = nh.advertise<std_msgs::Float32MultiArray>("lines",100);
     ros::Rate r(10);
 
     ros::Subscriber subEncoder = nh.subscribe<geometry_msgs::Vector3>("encoderPosition", 100, &encoderUpdate_cb);
