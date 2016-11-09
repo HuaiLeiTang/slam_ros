@@ -455,7 +455,7 @@ void RRTs::PathPlaning(Node goal) {
             i = 0;
             t++;
             cout<<"Path planning ciklus: "<<t<<"000"<<endl;
-            if(t == 6) {
+            if(t == 4) {
                dijkPath.clear();
                return;
             }
