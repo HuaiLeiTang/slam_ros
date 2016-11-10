@@ -1,7 +1,7 @@
 #include "gridmap.h"
 
-#define DEBUG_LISTS 1
-#define DEBUG_LIST_LENGTHS_ONLY 1
+#define DEBUG_LISTS 0
+#define DEBUG_LIST_LENGTHS_ONLY 0
 
 ObsVec::ObsVec(AncientObstacle *obs, Vec2 firstPoint): firstPoint(firstPoint) {
     obspointer = obs;
@@ -144,6 +144,19 @@ int GridMap::GetGridValue(float x, float y) {
     }
     else {
         return data[MapIndex(grid)];
+    }
+}
+
+void GridMap::DrawGridLine(Vec2 start, Vec2 end) {
+    if(((start.y*mapHeight + start.x) > dataSize) || (end.y*mapHeight+end.x > dataSize) ) {
+        cout<<"Invalid Start or end Vector in DrawGridLine"<<endl;
+        return;
+    }
+    Vec2 SE = end - start;
+    SE = SE.Norm()*0.5;
+    while(!(Distance(start,end) < 1)){
+        data[(int)ceil(start.y)*mapHeight + (int)ceil(start.x)] = KNOWN;
+        start = start + SE;
     }
 }
 
@@ -584,16 +597,15 @@ bool MapSearchNode::IsSameState( MapSearchNode &rhs )
 void MapSearchNode::PrintNodeInfo()
 {
     char str[100];
-    sprintf( str, "Node position : (%d,%d)\n", x,y );
+  //  sprintf( str, "Node position : (%d,%d)\n", x,y );
     cout << str;
 }
 
 void MapSearchNode::PrintNodeInfo(vector<Vec2> &path)
 {
     char str[100];
-    sprintf( str, "Node position : (%d,%d)\n", x,y );
+   // sprintf( str, "Node position : (%d,%d)\n", x,y );
     path.push_back(Vec2(x,y));
-    cout << str;
 }
 
 // Here's the heuristic function that estimates the distance from a Node
@@ -731,7 +743,6 @@ Astar::Astar(): obsbuffer() {
 
 void Astar::Framing() {
     obsbuffer = gmap->gridObstacles;
-        cout<<"obsbuffer: "<<obsbuffer.size()<<endl;
     int x_max = 0;
     int y_max = 0;
     int y_min = gmap->mapWidth;
@@ -800,12 +811,10 @@ void Astar::Framing() {
     }
     int XD = x_max - x_min;
     int YD = y_max - y_min;
-    cout<<x_max<<" "<<x_min<<" "<<y_max<<" "<<y_min<<" goal"<<goalVec<<endl;
     int iter = x_min;
     int index;
     vector<int> tempobs;
     tempobs.reserve(2*(XD+YD));
-    cout<<"temp obs siez "<<tempobs.size()<<endl;
     for(int i = 0; i < XD; i++) {
 
         tempobs.push_back(y_min*gmap->mapWidth + iter);
@@ -821,7 +830,6 @@ void Astar::Framing() {
     }
     tempobs.push_back( y_max*gmap->mapWidth + x_max);
     gmap->gridObstacles.insert(gmap->gridObstacles.end(),tempobs.begin(),tempobs.end());
-    cout<<"temp obs siez "<<tempobs.size()<<endl;
     for(int i = 0; i < tempobs.size();i++) {
         gmap->data[tempobs[i]] = OCCUPANCY;
     }
@@ -852,15 +860,12 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
 
     do
     {
-        cout<<"Start Step"<<endl;
         SearchState = astarsearch.SearchStep();
         if(SearchState == AStarSearch<MapSearchNode>::SEARCH_STATE_FAILED) {
-            cout<<"Break motherfuker"<<endl;
+            cout<<"Break "<<endl;
             break;
         }
-        cout<<"Get search step"<<endl;
         SearchSteps++;
-        cout<<"add"<<endl;
 #if DEBUG_LISTS
 
         cout << "Steps:" << SearchSteps << "\n";
@@ -910,7 +915,7 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
 #endif
             int steps = 0;
 
-            node->PrintNodeInfo();
+            //node->PrintNodeInfo();
             for( ;; )
             {
                 node = astarsearch.GetSolutionNext();
@@ -933,13 +938,25 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
             // Once you're done with the solution you can free the nodes up
             astarsearch.FreeSolutionNodes();
 
-            for(int i= 0; i < 5;i++) {
+            for(int i= 0; i < 2;i++) {
                 PotencialDistort();
-            }
-            for(int i = 0; i < vecpath.size();i++) {
+            }            
+            PathLines();
+            /*for(int i = 0; i < vecpath.size() - 1; i++) {
+                gmap->DrawGridLine(vecpath[i],vecpath[i + 1]);
+            }*/
+           for(int i = 1; i < vecpath.size()-1;i++) {
+               if((vecpath[i].x == vecpath[i + 1].x) && (vecpath[i].y == vecpath[i + 1].y)) {
+                   vecpath.erase(vecpath.begin() + (i + 1));
+                   i--;
+               }
+           }
+           /*for(int i = 0; i < vecpath.size();i++) {
                 gmap->data[gmap->mapHeight*(int)vecpath[i].y + (int)vecpath[i].x] = KNOWN;
-            }
-
+            }*/
+           for(int i = 0; i < vecpath.size(); i++) {
+               vecpath[i] = gmap->MapIndexInverse((int)vecpath[i].y + vecpath[i].x);
+           }
 
     }
     else if( SearchState == AStarSearch<MapSearchNode>::SEARCH_STATE_FAILED )
@@ -948,7 +965,6 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
         pathfound = false;
 
     }
-    cout<<"WTF"<<endl;
     // Display the number of loops the search went through
     cout << "SearchSteps : " << SearchSteps << "\n";
 //---------------------------------------------------------------------------------------------------------
@@ -993,4 +1009,26 @@ void Astar::PotencialDistort() {
         vecpath[i] = vecpath[i] + Gradient(vecpath[i]);
     }
 
+}
+
+void Astar::PathLines() {
+    simplifyPath pathlines;
+    vector<line> lines;
+    vector<polar_point> templines = descart2polar(this->vecpath);
+    vector<pair<line,vector<polar_point> > > temp_result;
+    temp_result = pathlines.simplifyWithRDP(templines,1.42);
+    cout<<"temp "<<temp_result.size()<<endl;
+    for(int i = 0; i < temp_result.size(); i++)
+    {
+        lines.push_back(temp_result[i].first);
+    }
+    cout<<"lines number "<<lines.size()<<endl;
+    vecpath.clear();
+    templines.clear();
+    templines.reserve(lines.size()*2);
+    for(int i = 0; i < lines.size(); i++) {
+        templines.push_back(lines[i].lineInterval[0]);
+        templines.push_back(lines[i].lineInterval[1]);
+    }
+    polar2descart(templines,vecpath);
 }

@@ -57,7 +57,7 @@ findMaximumDistance(const vector<Point>& Points)const
 
 
 
-vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<polar_point>& polar_Points)
+vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<polar_point>& polar_Points, double treshold)
 {
    if(polar_Points.size() < 2)
   {  //base case 1
@@ -73,19 +73,9 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
   }
     /*line p_s;
     p_s = lineFitting(polar_Points);*/
-    double sum_di = 0;
-    double sum_var = 0;
     line split_line;
     split_line = lineFitting(polar_Points);
-    for(int i = 0;i < polar_Points.size();i++)
-        sum_di = sum_di + abs(cos(polar_Points[i].alfa - split_line.alfa))*2*(polar_Points[i].variance)/(sqrt(2*PI));
-
-    for(int i= 0; i < polar_Points.size();i++)
-        sum_var = sum_var + cos(polar_Points[i].alfa - split_line.alfa)*cos(polar_Points[i].alfa - split_line.alfa)*polar_Points[i].variance*polar_Points[i].variance*((PI - 2)/PI);
-    sum_var = sqrt(sum_var);//sorás négyzetet számoltunk de nekünk a szorás kell
     vector<Point> temp_point;
-    double t;
-    residual_error(polar_Points,t,split_line);
     /*cout<<"t: "<<t<<endl;
     cout<<"sum_di + sum_var: "<<sum_di + sum_var<<endl;
     cout<<"sum_di - sum_var: "<<sum_di - sum_var<<endl;*/
@@ -94,14 +84,15 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
     std::pair<int, double> maxDistance=findMaximumDistance(temp_point);
 
     int index=maxDistance.first;
+    double maxdist = maxDistance.second;
     vector<polar_point>::iterator it=polar_Points.begin();
-    vector<polar_point> path1(polar_Points.begin(),it+index); //new path l1 from 0 to index
+    vector<polar_point> path1(polar_Points.begin(),it+index+1); //new path l1 from 0 to index
     vector<polar_point> path2(it+index,polar_Points.end()); // new path l2 from index to last
     //split_line.residual_error(polar_Points) > sum_di + 0.5*sum_var || split_line.residual_error(polar_Points) < sum_di - 0.5*sum_var
-    if( t > sum_di + sum_var*1.5)
+    if( maxdist > treshold)
     {
-    vector<pair<line,vector<polar_point> > > r1 = simplifyWithRDP(path1);
-    vector<pair<line,vector<polar_point> > > r2=simplifyWithRDP(path2);
+    vector<pair<line,vector<polar_point> > > r1 = simplifyWithRDP(path1,treshold);
+    vector<pair<line,vector<polar_point> > > r2=simplifyWithRDP(path2,treshold);
 
     /*vector<Point> r1_p= polar2descart(r1);
     vector<Point> r2_p= polar2descart(r2);*/
@@ -113,12 +104,8 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
   }
   else
   { //base case 2, all points between are to be removed.
-    /*vector<polar_point> r(1,polar_Points[0]);
-      r.push_back(polar_Points[polar_Points.size()-1]);*/
-    split_line.C_AR = Covariancia(polar_Points);
     split_line.lineInterval.push_back(polar_Points[0]);
     split_line.lineInterval.push_back(polar_Points.back());
-    split_line.SetEndPoints();
     vector< pair<line,vector<polar_point> > > r;
     vector<polar_point> temp_pol(1,polar_Points[0]);
     temp_pol.push_back(polar_Points[polar_Points.size() - 1]);

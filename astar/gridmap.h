@@ -36,6 +36,7 @@ public:
     void SetGrid(Vec2 grid, int value);
     int GetGridValue(float x, float y);
     void SetRobotPose(Vec2 pose);
+    void DrawGridLine(Vec2 start, Vec2 end);
     geometry_msgs::Vector3 pose;
     void PublishMap(void);
     void DrawObstacle(std::vector<AncientObstacle*> obstacles);
@@ -89,6 +90,7 @@ class Astar {
 public:
     Astar();
     bool FindPath(Vec2 start, Vec2 goal);
+    void PathLines();
     Vec2 Gradient(Vec2 pose);
     void PotencialDistort(void);
     void SetGoalCharge();

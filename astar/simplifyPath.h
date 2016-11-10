@@ -86,7 +86,7 @@ private:
 
 //"simplifyWithRDP" returns the simplified path with a Point vector. The function takes in the paths to be simplified and a customerized thresholds for the simplication.
 public:
-    vector<pair<line,vector<polar_point> > > simplifyWithRDP(vector<polar_point>& polar_Points);
+    vector<pair<line,vector<polar_point> > > simplifyWithRDP(vector<polar_point>& polar_Points,double treshold);
 };
 
 #endif

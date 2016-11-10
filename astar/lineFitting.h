@@ -15,13 +15,16 @@ using namespace std;
 
 
 std::vector<polar_point> descart2polar(std::vector<Point>& Points);
-
+std::vector<polar_point> descart2polar(std::vector<Vec2>& Points);
 std::vector<Point> polar2descart(std::vector<polar_point>& Points);
 Point polar2descart(polar_point polar_Points);
 polar_point descart2polar(Point Points);
 polar_point descart2polar(Vec2 vec);
 
 void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Point>& points);
+
+void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Vec2>& points);
+
 
 gsl_matrix* Covariancia(vector<polar_point> cov_data);
 

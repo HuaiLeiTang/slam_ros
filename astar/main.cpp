@@ -83,6 +83,9 @@ int main( int argc, char *argv[] )
     cout<<"OCCUPACÍ "<<gmap->gridObstacles.size()<<endl;*/
     gmap->PublishMap();
     cout<<"publis"<<endl;
+    for(int i = 0; i < pathfinder.vecpath.size(); i++) {
+        cout<<pathfinder.vecpath[i]<<endl;
+    }
     r.sleep();
     ros::spinOnce();
     return 0;

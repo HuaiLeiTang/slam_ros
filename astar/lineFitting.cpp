@@ -139,6 +139,18 @@ std::vector<polar_point> descart2polar(std::vector<Point>& Points)
     return temp_vect;
 }
 
+std::vector<polar_point> descart2polar(std::vector<Vec2>& Points) {
+    std::vector<polar_point> temp_vect;
+    polar_point temp_point;
+    for(int i = 0 ; i < Points.size();i++)
+    {
+        temp_point.r = sqrt( Points[i].x*Points[i].x + Points[i].y*Points[i].y );
+        temp_point.alfa = atan2(Points[i].y,Points[i].x);
+        temp_vect.push_back(temp_point);
+    }
+    return temp_vect;
+}
+
 polar_point descart2polar(Point Points)
 {
     polar_point temp_point;
@@ -165,6 +177,16 @@ std::vector<Point> polar2descart(std::vector<polar_point>& polar_Points)
         temp_vect.push_back(temp_point);
     }
     return temp_vect;
+}
+
+void polar2descart(std::vector<polar_point>& polar_Points, std::vector<Vec2>& points) {
+Vec2 temp_point;
+    for(int i = 0;i < polar_Points.size(); i++)
+    {
+        temp_point.x = cos(polar_Points[i].alfa)*polar_Points[i].r;
+        temp_point.y = sin(polar_Points[i].alfa)*polar_Points[i].r;
+        points.push_back(temp_point);
+    }
 }
 
 Point polar2descart(polar_point polar_Points)
@@ -243,19 +265,17 @@ line lineFitting(std::vector<polar_point>& polar_data)
     double sum_3 = 0;
     double sum_4 = 0;
     double sum_r = 0;
-    double wi = 0;
-    for(int i = 0;i < polar_data.size();i++)
-    {
-        wi = wi + polar_data[i].weight;
-    }
+    double sum_var;
+    for(int i = 0; i < polar_data.size();i++)
+        sum_var = sum_var + polar_data[i].weight;
+
+
     for(int i= 0; i < polar_data.size();i++)
         for(int j = i + 1; j < polar_data.size(); j++)
-            sum_1 = sum_1 + polar_data[i].weight*polar_data[j].weight*polar_data[i].r*polar_data[j].r*sin(polar_data[i].alfa +  polar_data[j].alfa);
+            sum_1 = sum_1 + polar_data[i].weight*polar_data[j].weight*polar_data[i].r*polar_data[j].r*sin(polar_data[i].alfa + polar_data[j].alfa);
 
     for(int i = 0;i < polar_data.size();i++)
-    {
-        sum_2 = sum_2 + (polar_data[i].weight - wi)*polar_data[i].weight*polar_data[i].r*polar_data[i].r*sin(2*polar_data[i].alfa);
-    }
+        sum_2 = sum_2 + ( polar_data[i].weight - sum_var)*polar_data[i].r*polar_data[i].r*sin(2*polar_data[i].alfa);
 
 
     for(int i= 0; i < polar_data.size();i++)
@@ -263,19 +283,18 @@ line lineFitting(std::vector<polar_point>& polar_data)
             sum_3 = sum_3 + polar_data[i].weight*polar_data[j].weight*polar_data[i].r*polar_data[j].r*cos(polar_data[i].alfa + polar_data[j].alfa);
 
     for(int i = 0;i < polar_data.size();i++)
-    {
-        sum_4 = sum_4 + (polar_data[i].weight - wi)*polar_data[i].weight*polar_data[i].r*polar_data[i].r*cos(2*polar_data[i].alfa);
-    }
+        sum_4 = sum_4 + (polar_data[i].weight - sum_var)*polar_data[i].r*polar_data[i].r*cos(2*polar_data[i].alfa);
 
-    alfa = 0.5*atan2( (2/wi)*sum_1 + (1/wi)*sum_2 , (2/wi)*sum_3 +(1/wi)*sum_4 );
+    double wi = (double)polar_data.size();
+
+    alfa = 0.5*atan2((2/wi)*sum_1 + (1/wi)*sum_2, (2/wi)*sum_3 +(1/wi)*sum_4);
 
     for(int i = 0;i < polar_data.size();i++)
         sum_r = sum_r + polar_data[i].weight*polar_data[i].r*cos(polar_data[i].alfa - alfa);
 
-    line linefit(alfa*180/PI,sum_r/wi);
+    line linefit(alfa*180/PI,abs(sum_r/sum_var));
     return linefit;
 }
-
 
 FuncParam::FuncParam(vector<polar_point> initData,int iPut,int oPut) {
 	covData = initData;
@@ -440,7 +459,7 @@ void lineXtracion::Filter(int window)
 void lineXtracion::Extract(void)
 {
     simplifyPath black_magic;
-    vector<pair<line,vector<polar_point> > > temp_result = black_magic.simplifyWithRDP(this->pol_data);
+    vector<pair<line,vector<polar_point> > > temp_result = black_magic.simplifyWithRDP(this->pol_data,0);
     for(int i = 0; i < temp_result.size(); i++)
     {
         Fitlines.push_back(temp_result[i].first);
