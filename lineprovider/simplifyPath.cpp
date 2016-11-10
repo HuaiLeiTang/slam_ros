@@ -77,7 +77,6 @@ polar_point EndPoint(vector<polar_point>& polar_Points, line l) {
     Vec2 FM = FE.Norm()*(SkalarCos(FE,FP)*FP.Lenght());
     Vec2 N = vfirst + FM;
     polar_point ret = descart2polar(N);
-    cout<<"ret: "<<ret.alfa<<" "<<ret.r<<" "<<end.alfa<<" "<<end.r<<" "<<polar_Points[polar_Points.size() - 1].alfa<<" "<<polar_Points[polar_Points.size() - 1].r<<endl;
     return ret;
 }
 
@@ -102,7 +101,6 @@ polar_point FirstPoint(vector<polar_point>& polar_Points, line l) {
     Vec2 FM = FE.Norm()*(SkalarCos(FE,FP)*FP.Lenght());
     Vec2 N = vfirst + FM;
     polar_point ret = descart2polar(N);
-    cout<<"ret: "<<ret.alfa<<" "<<ret.r<<" "<<end.alfa<<" "<<end.r<<" "<<polar_Points[0].alfa<<" "<<polar_Points[0].r<<endl;
     return ret;
 }
 

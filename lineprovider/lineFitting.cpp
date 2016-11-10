@@ -625,12 +625,10 @@ vector<line> LineExtraction(vector<polar_point>& pol_points) {
     vector<int> split;
     qsort (&pol_points[0], pol_points.size(), sizeof(polar_point), comparePolar);
     segmentation(pol_points,split);
-    cout<<"split num "<< split.size()<<endl;
     if(split.size() != 0) {
         rotate(pol_points.begin(),pol_points.begin() + split.back(),pol_points.end());
         split.clear();
         segmentation(pol_points,split);
-        cout<<"split num "<< split.size()<<endl;
         if(split.size() != 0) {
             int segmens_num = split.size() + 1;
             vector<polar_point> segmens[segmens_num];

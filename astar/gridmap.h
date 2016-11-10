@@ -59,7 +59,7 @@ public:
     Vec2 NextGoal();
     std::vector<AncientObstacle*> SortObstacles(std::vector<AncientObstacle *> &obstacles);
     //----------A Star------------
-    static constexpr double r = 24;
+    static constexpr double r = 30;
     static constexpr double senser = 500;
 };
 
@@ -95,8 +95,10 @@ public:
     void PotencialDistort(void);
     void SetGoalCharge();
     void Framing();
+    void Reset();
     vector<Vec2> vecpath;
     vector<int> obsbuffer;
+    vector<int> tempobs;
     Vec2 goalVec;
     Vec2 startVec;
     float goalCharge;

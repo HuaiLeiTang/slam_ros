@@ -38,7 +38,7 @@ public:
     double y;
     Vec2 FirstPoint();
     Vec2 EndPoint();
-    static constexpr double r = 25;
+    static constexpr double r = 30;
 };
 
 class StraightObstacle: public AncientObstacle {
@@ -61,7 +61,7 @@ public:
     Vec2 firstDown;
     Vec2 endUp;
     Vec2 endDown;
-    static constexpr double r = 25;
+    static constexpr double r = 30;
 };
 
 class RRTs {

@@ -155,7 +155,7 @@ void GridMap::DrawGridLine(Vec2 start, Vec2 end) {
     Vec2 SE = end - start;
     SE = SE.Norm()*0.5;
     while(!(Distance(start,end) < 1)){
-        data[(int)ceil(start.y)*mapHeight + (int)ceil(start.x)] = KNOWN;
+        data[(int)ceil(start.y)*mapHeight + (int)ceil(start.x)] = 70;
         start = start + SE;
     }
 }
@@ -167,9 +167,9 @@ std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bo
     bool newobstacle= true;
     Vec2 FE_norm = endPoint - firstPoint;
     FE_norm = FE_norm.Norm();
-    FE_norm = FE_norm * (r/2);
+    FE_norm = FE_norm * (r/4);
     if(value == TARGET) {
-        F = F + FE_norm*10;
+        F = F + FE_norm*2;
     }
     vector<int> buf;
     while(true) {
@@ -190,7 +190,7 @@ std::vector<int> GridMap::DrawLine(Vec2 firstPoint, Vec2 endPoint, int value, bo
         newtarget = true;
         newobstacle = true;
         F = F + FE_norm;
-        if(Distance(F,endPoint) < r/2) {
+        if(Distance(F,endPoint) < r/4) {
             break;
         }
         if(stoppable && (data[MapIndex(kvantF)] == OCCUPANCY)) {
@@ -224,6 +224,9 @@ void GridMap::DrawObstacle(std::vector<AncientObstacle *> obstacles) {
         gridObstacles.insert(gridObstacles.end(),tempobs1.begin(),tempobs1.end());
         gridObstacles.insert(gridObstacles.end(),tempobs2.begin(),tempobs2.end());
         gridObstacles.insert(gridObstacles.end(),tempobs3.begin(),tempobs3.end());
+        tempobs1.clear();
+        tempobs2.clear();
+        tempobs3.clear();
     }
 }
 
@@ -550,9 +553,9 @@ Vec2 GridMap::NextGoal() {
            }
        }
    }
-   for(int j = 0; j < targets[targethalmaz].size(); j++) {
+   /*for(int j = 0; j < targets[targethalmaz].size(); j++) {
        data[targets[targethalmaz][j]] = KNOWN;
-   }
+   }*/
    targets.erase(targets.begin() + targethalmaz);
    //SetGrid(Vec2Quantization(minVec),OCCUPANCY);
    return minVec;
@@ -737,7 +740,7 @@ float MapSearchNode::GetCost( MapSearchNode &successor )
     }
 }
 
-Astar::Astar(): obsbuffer() {
+Astar::Astar(): obsbuffer(), tempobs() {
     vecpath.reserve(2000);
 }
 
@@ -813,7 +816,6 @@ void Astar::Framing() {
     int YD = y_max - y_min;
     int iter = x_min;
     int index;
-    vector<int> tempobs;
     tempobs.reserve(2*(XD+YD));
     for(int i = 0; i < XD; i++) {
 
@@ -842,10 +844,12 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
     // Create a start state
     bool pathfound = true;
     start = gmap->Vec2Quantization(start);
+    start = start + gmap->offset;
     startVec = start;
     goal = gmap->Vec2Quantization(goal);
+    goal = goal + gmap->offset;
     goalVec = goal;
-    Framing(); // ismert map bekeretetése
+ //   Framing(); // ismert map bekeretetése
     MapSearchNode nodeStart;
     nodeStart.x = start.x;
     nodeStart.y = start.y;
@@ -938,30 +942,35 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
             // Once you're done with the solution you can free the nodes up
             astarsearch.FreeSolutionNodes();
 
-            for(int i= 0; i < 2;i++) {
+         /*   for(int i= 0; i < ;i++) {
                 PotencialDistort();
-            }            
-            PathLines();
-            /*for(int i = 0; i < vecpath.size() - 1; i++) {
-                gmap->DrawGridLine(vecpath[i],vecpath[i + 1]);
             }*/
-           for(int i = 1; i < vecpath.size()-1;i++) {
-               if((vecpath[i].x == vecpath[i + 1].x) && (vecpath[i].y == vecpath[i + 1].y)) {
-                   vecpath.erase(vecpath.begin() + (i + 1));
-                   i--;
+            if(steps > 1) {
+                PathLines();
+
+              /*  for(int i = 0; i < vecpath.size() - 1; i++) {
+                    gmap->DrawGridLine(vecpath[i],vecpath[i + 1]);
+                }*/
+
+               for(int i = 1; i < vecpath.size()-1;i++) {
+                   if((vecpath[i].x == vecpath[i + 1].x) && (vecpath[i].y == vecpath[i + 1].y)) {
+                       vecpath.erase(vecpath.begin() + (i + 1));
+                       i--;
+                   }
                }
-           }
+            }
            /*for(int i = 0; i < vecpath.size();i++) {
                 gmap->data[gmap->mapHeight*(int)vecpath[i].y + (int)vecpath[i].x] = KNOWN;
             }*/
            for(int i = 0; i < vecpath.size(); i++) {
-               vecpath[i] = gmap->MapIndexInverse((int)vecpath[i].y + vecpath[i].x);
+               vecpath[i] = gmap->MapIndexInverse((int)vecpath[i].y*gmap->mapHeight + vecpath[i].x);
            }
 
     }
     else if( SearchState == AStarSearch<MapSearchNode>::SEARCH_STATE_FAILED )
     {
         cout << "Search terminated. Did not find goal state\n";
+        vecpath.clear();
         pathfound = false;
 
     }
@@ -1005,7 +1014,10 @@ Vec2 Astar::Gradient(Vec2 pose) {
 }
 
 void Astar::PotencialDistort() {
-    for(int i = 1; i < vecpath.size() - 1; i++) { // start end goal not distort
+    if(vecpath.size() < 3) {
+        return;
+    }
+    for(int i = 2; i < vecpath.size() - 1; i++) { // start end goal not distort
         vecpath[i] = vecpath[i] + Gradient(vecpath[i]);
     }
 
@@ -1030,5 +1042,18 @@ void Astar::PathLines() {
         templines.push_back(lines[i].lineInterval[0]);
         templines.push_back(lines[i].lineInterval[1]);
     }
+    cout<<"polar to descart"<<endl;
     polar2descart(templines,vecpath);
+    cout<<"polar to descart finish"<<endl;
+}
+
+void Astar::Reset() {
+    gmap->gridObstacles = this->obsbuffer;
+    obsbuffer.clear();
+    for(int i = 0; i < tempobs.size(); i++) {
+        gmap->data[tempobs[i]] = UNKNOWN;
+    }
+    tempobs.clear();
+    vecpath.clear();
+    vecpath.reserve(2000);
 }

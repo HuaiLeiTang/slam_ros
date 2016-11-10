@@ -37,12 +37,9 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
         output_file<<points[points.size()-1].r<<" "<<points[points.size()-1].alfa + M_PI<<endl;
     }
     lines = LineExtraction(points);
-  /*  for(auto &lin : lines){
-        lin.alfa += M_PI;
-        lin.alfa = lin.alfa > M_PI ? lin.alfa-2.0*M_PI : lin.alfa;
-        cout<< lin.alfa <<" "<<lin.r<<endl;
+    for(auto &lin : lines){
         lin.WriteCov();
-    }*/
+    }
     newlines = true;
 }
 

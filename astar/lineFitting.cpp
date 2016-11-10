@@ -42,8 +42,6 @@ vector<Point> line::line_graf(double x_1,double x_2)
 }
 
 void line::SetEndPoints() {
-    this->lineInterval[0].r = r/(cos(lineInterval[0].alfa - this->alfa));
-    this->lineInterval[1].r = r/(cos(lineInterval[1].alfa - this->alfa));
     this->lineInterval[0].alfa = lineInterval[0].alfa + PI;
     this->lineInterval[1].alfa = lineInterval[1].alfa + PI;
     lineInterval[0].alfa = lineInterval[0].alfa > PI ? lineInterval[0].alfa-2.0*PI : lineInterval[0].alfa;

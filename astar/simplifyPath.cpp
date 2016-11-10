@@ -106,6 +106,7 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
   { //base case 2, all points between are to be removed.
     split_line.lineInterval.push_back(polar_Points[0]);
     split_line.lineInterval.push_back(polar_Points.back());
+   // split_line.SetEndPoints();
     vector< pair<line,vector<polar_point> > > r;
     vector<polar_point> temp_pol(1,polar_Points[0]);
     temp_pol.push_back(polar_Points[polar_Points.size() - 1]);
