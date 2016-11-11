@@ -39,6 +39,7 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     lines = LineExtraction(points);
     for(auto &lin : lines){
         lin.WriteCov();
+        cout<<lin.alfa<<' '<<lin.r<<endl;
     }
     newlines = true;
 }

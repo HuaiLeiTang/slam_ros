@@ -16,7 +16,7 @@ std::vector<Vec2> lineIntervals;
 std::vector<AncientObstacle*> robstacles;
 bool newlines = false;
 bool newpose = false;
-bool targetActive = false;
+bool targetActive = true; //targetActive = false;
 bool tripEnd = true;
 double theta;
 bool inGo = false;
@@ -31,9 +31,9 @@ vector<Vec2> path;
 double roundParam;
 
 Vec2 temp;
-Node target(-700,-700);
+Node target(-970,-970);
 
-RRTs test(1500,1500);
+RRTs test(1000,1000);
 
 vector< AncientObstacle* >  LineMapGenerator(void) {
     vector<double> alfa;
@@ -209,14 +209,14 @@ while(ros::ok) {
             tripEnd = false;
             if(!targetActive) { // ide !(!targetActive kell
                 targetActive = true;
-                temp = gmap.NextGoal();
+              /*  temp = gmap.NextGoal();
                 cout<<"New Target: "<<temp<<endl;
                 if(temp.x == 0 && temp.y == 0) {
                     cout<<"No more targets"<<endl;
                     exit(1);
                 }
                 target.x = temp.x;
-                target.y = temp.y;
+                target.y = temp.y;*/
             }
             test.SetPose(pose);
             cout<<"Path Planning..."<<endl;
@@ -273,8 +273,8 @@ while(ros::ok) {
         go = false;
         inGo = true;
         command.x = 1;
-        if( (((path[1] - pose).Lenght())/100) > 3 )
-            command.y = 3;
+        if( (((path[1] - pose).Lenght())/100) > 1.5 )
+            command.y = 1.5;
         else {
             command.y = ((path[1] - pose).Lenght())/100;
         }

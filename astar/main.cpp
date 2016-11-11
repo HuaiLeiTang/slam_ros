@@ -97,7 +97,7 @@ int main( int argc, char *argv[] )
 
     ros::init(argc, argv, "theseus");
     ros::NodeHandle n;
-    GridMap gridmap(42.5,200,&n);
+    GridMap gridmap(10,400,&n);
     gmap = &gridmap;
     Astar pathfinder;
     ros::Publisher thesues_pub = n.advertise<std_msgs::Float32MultiArray>("path", 100);
@@ -122,11 +122,11 @@ int main( int argc, char *argv[] )
             cout<<"New Ciklus"<<endl;
             gridmap.SetRobotPose(pose);
             cout<<"Set Robot Pose"<<endl;
-            gridmap.DrawObstacle(robstacles);
+            gridmap.DrawPerfectObs(robstacles);
             cout<<"DrawObstacle"<<endl;
             gridmap.UpgradeKnownGrid(robstacles);
             cout<<"UpgradeKnownGrid"<<endl;
-            gridmap.UpgradeTargets(robstacles);
+            //gridmap.UpgradeTargets(robstacles);
             cout<<"UpgradeTargets"<<endl;
             if(tripEnd) {
                 cout<<"New Trip"<<endl;
@@ -197,8 +197,8 @@ int main( int argc, char *argv[] )
             inGo = true;
             command.x = 1;
             cout<<"Forward to "<<path[1]<<endl;
-            if( (((path[1] - pose).Lenght())/100) > 3 )
-                command.y = 3;
+            if( (((path[1] - pose).Lenght())/100) > 1.5 )
+                command.y = 1.5;
             else {
                 command.y = ((path[1] - pose).Lenght())/100;
             }

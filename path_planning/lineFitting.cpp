@@ -540,7 +540,7 @@ void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
     cout<<"max_avr: "<<max_avr<<endl;
     if(true) {
         for(int i = 0; i < len; i++) {
-            if(dist[i] > avr) {
+            if(dist[i] > 0.45) {
                 split.push_back(i + 1);
             }
         }

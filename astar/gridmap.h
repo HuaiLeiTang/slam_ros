@@ -30,6 +30,7 @@ public:
     Vec2 offset;
     int8_t* data;
     std::vector<int> gridObstacles;
+    void DrawPerfectObs(std::vector<AncientObstacle*> obstacles);
     std::vector<std::vector<int>> targets;
     ros::Publisher mapPublisher;
     ros::NodeHandle* handle;
@@ -59,7 +60,7 @@ public:
     Vec2 NextGoal();
     std::vector<AncientObstacle*> SortObstacles(std::vector<AncientObstacle *> &obstacles);
     //----------A Star------------
-    static constexpr double r = 30;
+    static constexpr double r = 35;
     static constexpr double senser = 500;
 };
 

@@ -36,7 +36,7 @@ bool operator>(const ObsVec& va, const ObsVec& vb)
 }
 
 GridMap::GridMap(float resolution, int size, ros::NodeHandle *handler): resolution(resolution), offset(size,size), mapHeight(2*size),
-    mapWidth(2*size), targets(), size(size) {
+    mapWidth(2*size), targets(), size(size),gridObstacles() {
     this->handle = handler;
     this->mapPublisher = handle->advertise<nav_msgs::OccupancyGrid>("/map",100);
     data = new int8_t[4*size*size];
@@ -71,8 +71,8 @@ void GridMap::PublishMap() {
 
 Vec2 GridMap::Vec2Quantization(Vec2 k) {
     Vec2 q;
-    q.x = round(k.x/resolution - 0.5);
-    q.y = round(k.y/resolution - 0.5);
+    q.x = round(k.x/resolution);
+    q.y = round(k.y/resolution);
     return q;
 }
 
@@ -114,7 +114,13 @@ Vec2 GridMap::Vec2QBaseVector(Vec2 qb) {
 
 int GridMap::MapIndex(Vec2 qindex) {
     Vec2 q_index = qindex + offset;
-    return (int)(((int)mapWidth) *(int)(q_index.y) + (int)(q_index.x));
+    int index = (int)(((int)mapWidth) *(int)(q_index.y) + (int)(q_index.x));
+    if(index < dataSize) {
+        return index;
+    }
+    else {
+        return dataSize;
+    }
 }
 
 int GridMap::MapIndexNoOffset(Vec2 qindex) {
@@ -157,6 +163,44 @@ void GridMap::DrawGridLine(Vec2 start, Vec2 end) {
     while(!(Distance(start,end) < 1)){
         data[(int)ceil(start.y)*mapHeight + (int)ceil(start.x)] = 70;
         start = start + SE;
+    }
+}
+
+void GridMap::DrawPerfectObs(std::vector<AncientObstacle*> obstacles) {
+    Vec2 FD;
+    Vec2 FE;
+    Vec2 FDstep;
+    Vec2 FEstep;
+    Vec2 FU;
+    Vec2 tempFD;
+    int index;
+    Vec2 Qvec;
+    double FDLenght;
+    double FELenght;
+    int iterFE;
+    int iterFD;
+    for(int i = 0; i < obstacles.size(); i++) {
+        FU = obstacles[i]->FirstUp();
+        FD = obstacles[i]->FirstDown() - FU;
+        FE = obstacles[i]->EndUp() - FU;
+        FDstep = FD.Norm();
+        FEstep = FE.Norm();
+        FDLenght = FD.Lenght();
+        FELenght = FE.Lenght();
+        iterFD = ceil((FDLenght*2)/resolution) + 1;
+        iterFE = ceil((FELenght*2)/resolution) + 1;
+        for(int k = 0; k <= iterFD; k++) {
+            tempFD = FDstep*FDLenght*((double)k/(double)iterFD);
+            for(int j = 0; j <= iterFE; j++) {
+                Qvec = Vec2Quantization(FU + tempFD + FEstep*FELenght*((double)j/(double)iterFE));
+                index = MapIndex(Qvec);
+                if(data[index] == OCCUPANCY) {
+                    continue;
+                }
+                data[index] = OCCUPANCY;
+                this->gridObstacles.push_back(index);
+            }
+        }
     }
 }
 
@@ -514,8 +558,8 @@ Vec2 GridMap::MapIndexInverse(int index) {
         eredmeny.y = 0 - t;
     }
     eredmeny = eredmeny - offset;
-    eredmeny.x = (eredmeny.x + 0.5)*resolution;
-    eredmeny.y = (eredmeny.y + 0.5)*resolution;
+    eredmeny.x = (eredmeny.x)*resolution;
+    eredmeny.y = (eredmeny.y)*resolution;
     return eredmeny;
 }
 
@@ -751,6 +795,7 @@ void Astar::Framing() {
     int y_min = gmap->mapWidth;
     int x_min = gmap->mapWidth;
     Vec2 iterator;
+    cout<<obsbuffer.size()<<" " <<gmap->gridObstacles.size()<<endl;
     for(int i = 0; i < obsbuffer.size(); i++) {
         iterator = gmap->QuantMapIndexInverse(obsbuffer[i]);
         if(x_max < iterator.x ) {
@@ -812,6 +857,7 @@ void Astar::Framing() {
     if(y_min < 0) {
         y_min = 0;
     }
+    cout<<x_max<<" "<<x_min<<" "<<y_max<<" "<<y_min<<endl;
     int XD = x_max - x_min;
     int YD = y_max - y_min;
     int iter = x_min;
@@ -831,7 +877,6 @@ void Astar::Framing() {
         iter++;
     }
     tempobs.push_back( y_max*gmap->mapWidth + x_max);
-    gmap->gridObstacles.insert(gmap->gridObstacles.end(),tempobs.begin(),tempobs.end());
     for(int i = 0; i < tempobs.size();i++) {
         gmap->data[tempobs[i]] = OCCUPANCY;
     }
@@ -849,7 +894,7 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
     goal = gmap->Vec2Quantization(goal);
     goal = goal + gmap->offset;
     goalVec = goal;
- //   Framing(); // ismert map bekeretetése
+    Framing(); // ismert map bekeretetése
     MapSearchNode nodeStart;
     nodeStart.x = start.x;
     nodeStart.y = start.y;
@@ -942,15 +987,16 @@ bool Astar::FindPath(Vec2 start, Vec2 goal) {
             // Once you're done with the solution you can free the nodes up
             astarsearch.FreeSolutionNodes();
 
-         /*   for(int i= 0; i < ;i++) {
+            for(int i= 0; i < 2;i++) {
                 PotencialDistort();
-            }*/
+            }
             if(steps > 1) {
                 PathLines();
-
-              /*  for(int i = 0; i < vecpath.size() - 1; i++) {
+                vecpath.back() = goal;
+                 cout<<" line num" << vecpath.size()<<endl;
+                 for(int i = 0; i < vecpath.size() - 1; i++) {
                     gmap->DrawGridLine(vecpath[i],vecpath[i + 1]);
-                }*/
+                }
 
                for(int i = 1; i < vecpath.size()-1;i++) {
                    if((vecpath[i].x == vecpath[i + 1].x) && (vecpath[i].y == vecpath[i + 1].y)) {
@@ -1028,7 +1074,7 @@ void Astar::PathLines() {
     vector<line> lines;
     vector<polar_point> templines = descart2polar(this->vecpath);
     vector<pair<line,vector<polar_point> > > temp_result;
-    temp_result = pathlines.simplifyWithRDP(templines,1.42);
+    temp_result = pathlines.simplifyWithRDP(templines,2);
     cout<<"temp "<<temp_result.size()<<endl;
     for(int i = 0; i < temp_result.size(); i++)
     {
@@ -1048,7 +1094,6 @@ void Astar::PathLines() {
 }
 
 void Astar::Reset() {
-    gmap->gridObstacles = this->obsbuffer;
     obsbuffer.clear();
     for(int i = 0; i < tempobs.size(); i++) {
         gmap->data[tempobs[i]] = UNKNOWN;
