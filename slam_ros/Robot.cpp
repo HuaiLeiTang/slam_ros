@@ -129,17 +129,6 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     gsl_matrix_view P_t0_v = gsl_matrix_view_array(this->P_t0, SLAMSIZE, SLAMSIZE);
     double x_t0[] = {this->xPos, this->yPos, this->thetaPos};
 
-    //delete all saved line data if number of lines reaches towards the maximum of 100
-    //(would be better to eliminate only older half of lines, but mathematically hard to achieve...)
-    if(this->savedLineCount > LINESIZE-10){
-        for(int i = 2; i < SLAMSIZE; ++i){
-            this->P_t0[i] = 0;
-            for(int j = 2; j < SLAMSIZE; ++j){
-                gsl_matrix_set(&P_t0_v.matrix, i, j, 0);
-            }
-            savedLineCount = 0;
-        }
-    }
     double u_odo[2];
     u_odo[0] = static_cast<double>(rot[0]);
     u_odo[1] = static_cast<double>(rot[1]);
@@ -300,8 +289,8 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     for(int i = 0; i < lines.size(); ++i){
         std::cout << "\n LOOP 1";
 
-        double R[4] = {0.004, 0,
-                       0, 0.004
+        double R[4] = {LINENOISE, 0,
+                       0, LINENOISE
                       };
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
@@ -887,12 +876,33 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&P_t0_v.matrix ,i, j) << " ";
         }
     }
+    std::cout << "\nTotal Line Count: " << savedLineCount;
+
+    //DELETING OLD LINES (at a certain limit)
+    if(savedLineCount > LINESIZE-10){
+        savedLineCount = 0;
+        for(int i = 3; i < SLAMSIZE; ++i){
+            this->y[i] = 0;
+        }
+        gsl_matrix_view P_sub1 = gsl_matrix_submatrix(&P_t0_v.matrix, 3, 3, SLAMSIZE-3, SLAMSIZE-3);
+        gsl_matrix_view P_sub2 = gsl_matrix_submatrix(&P_t0_v.matrix, 0, 3, SLAMSIZE, SLAMSIZE-3);
+        gsl_matrix_view P_sub3 = gsl_matrix_submatrix(&P_t0_v.matrix, 3, 0, SLAMSIZE-3, SLAMSIZE);
+        gsl_matrix_set_all(&P_sub1.matrix, 0);
+        gsl_matrix_set_all(&P_sub2.matrix, 0);
+        gsl_matrix_set_all(&P_sub3.matrix, 0);
+    }
+
+    //-----------------------------------------------
+
     std::cout << std::endl;
     for(int i = 0; i < errorCodes.size(); ++i){
         if(errorCodes[i] != 0){
             std::cout << "index: " << i << " " << gsl_strerror(errorCodes[i]) << std::endl;
         }
     }
+
+
+
     gsl_set_error_handler(NULL);
 
     //saving covariance data to file

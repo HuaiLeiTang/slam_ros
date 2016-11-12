@@ -44,7 +44,7 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
         points[points.size()-1].alfa = msg.data[i+1] - M_PI;
         //points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
         points[points.size()-1].r = msg.data[i] + distribution(generator);
-        points[points.size()-1].variance = 0.1;
+        points[points.size()-1].variance = 0.04;
         //points[points.size()-1].weight = 1;
         std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
     }

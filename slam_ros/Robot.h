@@ -10,11 +10,11 @@
 #include "simplifyPath.h"
 #include "lineFitting.h"
 
-#define LINESIZE 200
-#define SLAMSIZE 403 // = LINESIZE*2+3
+#define LINESIZE 100
+#define SLAMSIZE 203 // = LINESIZE*2+3
 #define MAHALANOBIS 0.1
-#define LINENOISE 0.05
-#define ENCODERNOISE 0.1
+#define LINENOISE 0.08
+#define ENCODERNOISE 0.04
 
 class Robot
 {
