@@ -183,7 +183,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     gsl_matrix_set(&Fu_pre_v.matrix, 0, 1, 0);
     gsl_matrix_set(&Fu_pre_v.matrix, 0, 2, -u[0]*sin(u[2]/2.0 + x_t0[2])/2.0);
     gsl_matrix_set(&Fu_pre_v.matrix, 1, 0, sin(u[2]/2.0 + x_t0[2]));
-    gsl_matrix_set(&Fu_pre_v.matrix, 1, 1, 0);
+    gsl_matrix_set(&Fu_pre_v.matrix, 1, 1, 1);
     gsl_matrix_set(&Fu_pre_v.matrix, 1, 2, u[0]*cos(u[2]/2.0 + x_t0[2])/2.0);
     gsl_matrix_set(&Fu_pre_v.matrix, 2, 0, 0);
     gsl_matrix_set(&Fu_pre_v.matrix, 2, 1, 0);
@@ -214,9 +214,9 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 
     //std::cout << "!!!!!!!!!DEBUG: " << u[0];
     //constant noise of motion model
-    double Q[9] = {0.05*(-1.0/(1+std::abs(u[0])) + 1), 0, 0,           //0.5
-                       0, 0.1*(-1.0/(1+std::abs(u[0])) + 1), 0,       //0.1
-                       0, 0, 0.025*(-1.0/(1+std::abs(u[0])) + 1)
+    double Q[9] = {ENCODERNOISE*(-1.0/(1+std::abs(u[0])) + 1), 0, 0,           //0.5
+                       0, 2*ENCODERNOISE*(-1.0/(1+std::abs(u[0])) + 1), 0,       //0.1
+                       0, 0, ENCODERNOISE*(-1.0/(1+std::abs(u[0])) + 1)
                       };
     /*double Q[9] = {std::abs(u[0]*0.05), 0, 0,
                    0, std::abs(u[0]*0.1), 0,
@@ -460,7 +460,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             // v_trans*inv(S)*v <= g^2          MAHALANOBIS
             double v_trans__S_inv[2] = {0, 0};
             double v_trans__S_inv__v[1] = {0};
-            double g_2 = 0.05;                                 //Mahalanobis distance constant goes here
+            double g_2 = MAHALANOBIS;                                 //Mahalanobis distance constant goes here
             gsl_matrix_view v_trans__S_inv_v = gsl_matrix_view_array(v_trans__S_inv, 1, 2);
             gsl_matrix_view v_trans__S_inv__v_v = gsl_matrix_view_array(v_trans__S_inv__v, 1, 1);
             errorCodes.push_back(gsl_matrix_sub(&z_v.matrix, &h_v.matrix));   //z used as temporary for innovation vector, possible vector optimaztion
@@ -493,6 +493,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 if(j == savedLineCount-1){        //no match found for new line
                     extraLines.push_back(lines[i]);
                     std::cout << "\nNO match found";
+                    std::cout << "\n----------------------------------------------------------";
                     break;
                 }
                 continue;           //if this did not match, try matching with the next old line
@@ -504,13 +505,13 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 matchesNum++;
 
                 //debug
-                std::cout << "\n Innovation Covariance Inverse:";
+                /*std::cout << "\n Innovation Covariance Inverse:";
                 for(int i = 0; i < 12; ++i){
                     std::cout << std::endl;
                     for(int j = 0; j < 12; ++j){
                         std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&S_inv_v.matrix ,i, j) << " ";
                     }
-                }
+                }*/
 
                 // K = P_pre*Hx_trans*inv(S)
                 double P_pre__Hx_trans[SLAMSIZE*2] = {0};
@@ -604,39 +605,39 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
                 std::cout << "\nTheta: " << this->y[2] << " x: " << this->y[0] << " y: " << this->y[1];
 
                 //debug
-                std::cout << "\n Measurement Jacobian full: \n";
+                /*std::cout << "\n Measurement Jacobian full: \n";
                 for(int i = 0; i < 2; ++i){
                     std::cout << std::endl;
                     for(int j = 0; j < 13; ++j){
                         std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&Hx_v.matrix, i, j) << " ";
                     }
-                }
+                }*/
 
                 //debug
-                std::cout << "\n Innovation Covariance:";
+                /*std::cout << "\n Innovation Covariance:";
                 for(int i = 0; i < 12; ++i){
                     std::cout << std::endl;
                     for(int j = 0; j < 12; ++j){
                         std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&S_v.matrix ,i, j) << " ";
                     }
-                }
+                }*/
 
                 //debug
-                std::cout << "\n Kalman Gain:";
+                /*std::cout << "\n Kalman Gain:";
                 for(int i = 0; i < 12; ++i){
                     std::cout << std::endl;
                     for(int j = 0; j < 12; ++j){
                         std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&K_v.matrix ,i, j) << " ";
                     }
-                }
+                }*/
                 //debug
                 std::cout << "\n delta:";
-                for(int i = 0; i < 4; ++i){
-                    std::cout << std::endl;
+                for(int i = 0; i < 14; ++i){
                     for(int j = 0; j < 1; ++j){
                         std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&delta_v.matrix ,i, j) << " ";
                     }
                 }
+                std::cout << "\n----------------------------------------------------------";
 
                 break;
 
@@ -804,8 +805,8 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         std::cout << "\n!New Line: alfa: " << this->y[savedLineCount*2] << " r: " << this->y[savedLineCount*2+1];
         //Pll = Gx*Prr*Gx' + Gl*R*Gl'
 
-        double R[4] = {0.05, 0,
-                       0, 0.05
+        double R[4] = {LINENOISE, 0,
+                       0, LINENOISE
                       };
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 

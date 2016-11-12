@@ -133,9 +133,9 @@ int main(int argc,char* argv[])
             }else{
                 std::cout <<"main: An error occured while computing the eigenvalues and vectors";
             }
-            msg.rotation.x = axii[0];
+            msg.rotation.x = axii[1];
             //msg.rotation.x = 1.0;
-            msg.rotation.y = axii[1];
+            msg.rotation.y = axii[0];
             //msg.rotation.y = 1.0;
             msg.rotation.z = angle;
             pubCov.publish(msg);
