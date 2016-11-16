@@ -46,7 +46,7 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
         points[points.size()-1].r = msg.data[i] + distribution(generator);
         points[points.size()-1].variance = 0.04;
         //points[points.size()-1].weight = 1;
-        std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
+        //std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
     }
     std::cout << "\nstarting line extraction";
     lines = LineExtraction(points);
@@ -58,6 +58,7 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     std::cout << "\nresults: ";
     for(int i = 0; i < lines.size(); ++i){
         std::cout << "\n" << lines[i].alfa << " " << lines[i].r;
+        lines[i].WriteCov();
     }
     if(lines.empty()){
         std::cout << "\nno lines found";

@@ -22,24 +22,28 @@ bool newpose = false;
 
 void mapping_cb(std_msgs::Float32MultiArray msg){
     ofstream output_file;
-    output_file.open("receive.txt");
+    output_file.open("lines.txt");
+    ofstream cov;
+    cov.open("cov.txt");
     points.clear();
     lines.clear();
     polar_point temp;
     cout<<"start line asd"<<endl;
     std::default_random_engine generator;
-    std::normal_distribution<double> distribution(0.0,0.1);
+    std::normal_distribution<double> distribution(0.0,0.08);
     for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
         points[points.size()-1].alfa = msg.data[i+1] - M_PI;
-        points[points.size()-1].r = msg.data[i];// + distribution(generator) ;
-        points[points.size()-1].variance = 0.05;
-        output_file<<points[points.size()-1].r<<" "<<points[points.size()-1].alfa + M_PI<<endl;
+        //points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
+        points[points.size()-1].r = msg.data[i] + distribution(generator);
+        points[points.size()-1].variance = 0.09;
     }
     lines = LineExtraction(points);
-    for(auto &lin : lines){
-        lin.WriteCov();
-        cout<<lin.alfa<<' '<<lin.r<<endl;
+    for(int i = 0; i < lines.size(); i++){
+        lines[i].alfa = lines[i].alfa +  M_PI;
+        lines[i].alfa = lines[i].alfa > M_PI ? lines[i].alfa-2.0*M_PI : lines[i].alfa;
+        cov<<lines[i].C_AR->data[0]<<" "<<lines[i].C_AR->data[1]<<" "<<lines[i].C_AR->data[2]<<" "<<lines[i].C_AR->data[3]<<endl;
+        output_file<<lines[i].alfa<<' '<<lines[i].r<<endl;
     }
     newlines = true;
 }

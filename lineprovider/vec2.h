@@ -1,15 +1,12 @@
 #ifndef VEC2_H
 #define VEC2_H
 
-#include "node.h"
 #include <iostream>
 
 class Vec2 {
 public:
     Vec2();
     Vec2(double x,double y);
-    Vec2(Node a, Node b);
-    Vec2(Node a);
     //Vec2(Obstacle o);
     Vec2 operator+(Vec2 other);
     Vec2 operator-(Vec2 other);

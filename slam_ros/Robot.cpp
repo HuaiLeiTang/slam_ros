@@ -289,9 +289,10 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     for(int i = 0; i < lines.size(); ++i){
         std::cout << "\n LOOP 1";
 
-        double R[4] = {LINENOISE, 0,
-                       0, LINENOISE
-                      };
+        double R[4];
+        for(int i = 0; i < 4; i++) {
+           R[i] = lines[i].C_AR->data[i];
+        }
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
         //the special case when the mapping just started
@@ -476,7 +477,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             }
 
             //v_trans__S_inv__v[0] = std::abs(v_trans__S_inv__v[0]);
-            if(v_trans__S_inv__v[0] > g_2){
+            if(v_trans__S_inv__v[0] > g_2 || v_trans__S_inv__v[0] < 0 ){
                 std::cout <<"\nno match, Mahalanobis: ";
                 std::cout << std::to_string(v_trans__S_inv__v[0]);
                 if(j == savedLineCount-1){        //no match found for new line
@@ -794,9 +795,10 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         std::cout << "\n!New Line: alfa: " << this->y[savedLineCount*2] << " r: " << this->y[savedLineCount*2+1];
         //Pll = Gx*Prr*Gx' + Gl*R*Gl'
 
-        double R[4] = {LINENOISE, 0,
-                       0, LINENOISE
-                      };
+        double R[4];
+        for(int i = 0; i < 4; i++) {
+           R[i] = lin.C_AR->data[i];
+        }
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
         gsl_matrix_view P_sub_v = gsl_matrix_submatrix(&P_t0_v.matrix, 0, 0, 3, 3);

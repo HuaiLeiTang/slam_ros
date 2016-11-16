@@ -11,16 +11,6 @@ Vec2::Vec2():x(), y() {
 Vec2::Vec2(double x, double y): x(x), y(y) {
 }
 
-Vec2::Vec2(Node a) {
-    x = a.x;
-    y = a.y;
-}
-
-Vec2::Vec2(Node a, Node b) {
-    x = a.x - b.x;
-    y = a.y - b.y;
-}
-
 Vec2 Vec2::operator +(Vec2 other) {
     Vec2 ret(x + other.x, y + other.y);
     return ret;

@@ -1,6 +1,7 @@
 #include <string>
 #include "simplifyPath.h"
 #include "lineFitting.h"
+#include "vec2.h"
 
 using std::vector;
 //Given an array of points, "findMaximumDistance" calculates the GPS point which have largest distance from the line formed by first and last points in RDP algorithm. Returns the index of the point in the array and the distance.
@@ -55,6 +56,53 @@ findMaximumDistance(const vector<Point>& Points)const
   return std::make_pair(index, Mdist);
 }
 
+polar_point EndPoint(vector<polar_point>& polar_Points, line l) {
+    if(polar_Points.size() < 4) {
+        return polar_Points[polar_Points.size() - 1];
+    }
+    polar_point first;
+    polar_point end;
+    first.r = l.r/(cos(polar_Points[(int)(polar_Points.size()/2)].alfa - l.alfa));
+    end.r = l.r/(cos(polar_Points[polar_Points.size() - 1].alfa - l.alfa));
+    first.alfa = polar_Points[(int)(polar_Points.size()/2)].alfa;
+    end.alfa = polar_Points[polar_Points.size() - 1].alfa;
+    Vec2 P;
+    polar2descart(polar_Points[polar_Points.size() - 1],P);
+    Vec2 vfirst;
+    polar2descart(first,vfirst);
+    Vec2 vend;
+    polar2descart(end,vend);
+    Vec2 FE = vend - vfirst;
+    Vec2 FP = P - vfirst;
+    Vec2 FM = FE.Norm()*(SkalarCos(FE,FP)*FP.Lenght());
+    Vec2 N = vfirst + FM;
+    polar_point ret = descart2polar(N);
+    return ret;
+}
+
+polar_point FirstPoint(vector<polar_point>& polar_Points, line l) {
+    if(polar_Points.size() < 4) {
+        return polar_Points[0];
+    }
+    polar_point first;
+    polar_point end;
+    first.r = l.r/(cos(polar_Points[(int)(polar_Points.size()/2)].alfa - l.alfa));
+    end.r = l.r/(cos(polar_Points[0].alfa - l.alfa));
+    first.alfa = polar_Points[(int)(polar_Points.size()/2)].alfa;
+    end.alfa = polar_Points[0].alfa;
+    Vec2 P;
+    polar2descart(polar_Points[0],P);
+    Vec2 vfirst;
+    polar2descart(first,vfirst);
+    Vec2 vend;
+    polar2descart(end,vend);
+    Vec2 FE = vend - vfirst;
+    Vec2 FP = P - vfirst;
+    Vec2 FM = FE.Norm()*(SkalarCos(FE,FP)*FP.Lenght());
+    Vec2 N = vfirst + FM;
+    polar_point ret = descart2polar(N);
+    return ret;
+}
 
 
 vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<polar_point>& polar_Points)
@@ -98,7 +146,7 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
     vector<polar_point> path1(polar_Points.begin(),it+index); //new path l1 from 0 to index
     vector<polar_point> path2(it+index,polar_Points.end()); // new path l2 from index to last
     //split_line.residual_error(polar_Points) > sum_di + 0.5*sum_var || split_line.residual_error(polar_Points) < sum_di - 0.5*sum_var
-    if( t > sum_di + sum_var*1.5)
+    if( t > sum_di + sum_var*2)
     {
     vector<pair<line,vector<polar_point> > > r1 = simplifyWithRDP(path1);
     vector<pair<line,vector<polar_point> > > r2=simplifyWithRDP(path2);
@@ -116,8 +164,9 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
     /*vector<polar_point> r(1,polar_Points[0]);
       r.push_back(polar_Points[polar_Points.size()-1]);*/
     split_line.C_AR = Covariancia(polar_Points);
-    split_line.lineInterval.push_back(polar_Points[0]);
-    split_line.lineInterval.push_back(polar_Points.back());
+    line l = split_line;
+    split_line.lineInterval.push_back(FirstPoint(polar_Points,l));
+    split_line.lineInterval.push_back(EndPoint(polar_Points,l));
     split_line.SetEndPoints();
     vector< pair<line,vector<polar_point> > > r;
     vector<polar_point> temp_pol(1,polar_Points[0]);

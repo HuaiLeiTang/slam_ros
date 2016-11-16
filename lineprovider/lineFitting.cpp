@@ -354,6 +354,28 @@ double Func(double x, void * params)
     return C_ar;
 }*/
 
+void LineAlap(line& lines) {
+    if(lines.r < 0) {
+        lines.r = abs(lines.r);
+        if(lines.alfa < 0) {
+            lines.alfa = PI + lines.alfa;
+        }
+        else {
+            lines.alfa = -PI + lines.alfa;
+        }
+    }
+}
+
+double alfanorm(double alfa) {
+    if(alfa > PI) {
+        return alfa - 2*PI;
+    }
+    if(alfa < -PI) {
+        return alfa + 2*PI;
+    }
+    return alfa;
+}
+
 gsl_matrix* Covariancia(vector<polar_point> cov_data)
 {
     gsl_matrix *F_pq = gsl_matrix_alloc(2,(size_t)2*cov_data.size()); // 2*n size Row a
@@ -363,26 +385,29 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
     gsl_matrix *F_pg_C_x = gsl_matrix_alloc(2,(size_t)2*cov_data.size());
     double repo;
     line alfa_r_Pi_Qi = lineFitting(cov_data);
-    if(alfa_r_Pi_Qi.alfa < 0) {
-        alfa_r_Pi_Qi.alfa += PI;
+    LineAlap(alfa_r_Pi_Qi);
+    if(alfa_r_Pi_Qi.alfa  < 0) {
+        alfa_r_Pi_Qi.alfa = alfa_r_Pi_Qi.alfa + 2*PI;
     }
     line alfa_r_Pi_Qi_eps;
     double eps = 0.001;
     double alfa_derivat;
     double r_derivat;
     double alfa;
+    double tempalfa;
     for(int i = 0;i < cov_data.size();i++)
     {
         repo = cov_data[i].r;
         cov_data[i].r = cov_data[i].r + eps;
         alfa_r_Pi_Qi_eps = lineFitting(cov_data);
+        LineAlap(alfa_r_Pi_Qi_eps);
         if(alfa_r_Pi_Qi_eps.alfa  < 0) {
-            alfa = alfa_r_Pi_Qi_eps.alfa + PI;
+            alfa = alfa_r_Pi_Qi_eps.alfa + 2*PI;
         }
         else {
             alfa = alfa_r_Pi_Qi_eps.alfa;
         }
-        alfa_derivat = ( alfa - alfa_r_Pi_Qi.alfa)/eps;
+        alfa_derivat = alfanorm((alfa - alfa_r_Pi_Qi.alfa))/eps;
         r_derivat = (alfa_r_Pi_Qi_eps.r - alfa_r_Pi_Qi.r)/eps;
         gsl_matrix_set(F_pq,0,i,alfa_derivat);
         gsl_matrix_set(F_pq,1,i,r_derivat);
@@ -390,8 +415,8 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
     }
     for(int i = 0; i < cov_data.size();i++)
     {
-        gsl_matrix_set(C_x,i,i,cov_data[i].variance*cov_data[i].variance);
-        gsl_matrix_set(C_x,i + cov_data.size(),i + cov_data.size(),cov_data[i].variance*cov_data[i].alfaVariance);
+        gsl_matrix_set(C_x,i,i,cov_data[i].variance*cov_data[i].variance*2);
+        gsl_matrix_set(C_x,i + cov_data.size(),i + cov_data.size(),1/12*2);
     }
 
     int j = 0;
@@ -401,12 +426,12 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
         cov_data[j].alfa = cov_data[j].alfa + eps;
         alfa_r_Pi_Qi_eps = lineFitting(cov_data);
         if(alfa_r_Pi_Qi_eps.alfa  < 0) {
-            alfa = alfa_r_Pi_Qi_eps.alfa + PI;
+            alfa = alfa_r_Pi_Qi_eps.alfa + 2*PI;
         }
         else {
             alfa = alfa_r_Pi_Qi_eps.alfa;
         }
-        alfa_derivat = (alfa - alfa_r_Pi_Qi.alfa)/eps;
+        alfa_derivat = alfanorm((alfa - alfa_r_Pi_Qi.alfa))/eps;
         r_derivat = (alfa_r_Pi_Qi_eps.r - alfa_r_Pi_Qi.r)/eps;
         gsl_matrix_set(F_pq,0,i,alfa_derivat);
         gsl_matrix_set(F_pq,1,i,r_derivat);
@@ -578,7 +603,7 @@ void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
 
 void LineConversion(vector<line>& lines) {
    for(int i = 0; i < lines.size(); i++) {
-        /*if(lines[i].r == 0) {
+     /*   if(lines[i].r == 0) {
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);
             i--;
@@ -589,19 +614,27 @@ void LineConversion(vector<line>& lines) {
             lines.erase(lines.begin() + i);
             i--;
             continue;
-        }
-        if(  isnan(lines[i].C_AR->data[0])|| isnan(lines[i].C_AR->data[1]) || isnan(lines[i].C_AR->data[2]) || isnan(lines[i].C_AR->data[3])) {
+        }*/
+
+       /* if(lines[i].C_AR->data[1] != lines[i].C_AR->data[2] ) {
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);
             i--;
             continue;
         }*/
+
+        if(  isnan(lines[i].C_AR->data[0])|| isnan(lines[i].C_AR->data[1]) || isnan(lines[i].C_AR->data[2]) || isnan(lines[i].C_AR->data[3])) {
+            delete lines[i].C_AR;
+            lines.erase(lines.begin() + i);
+            i--;
+            continue;
+        }
         if((lines[i].alfa) == 0 && (lines[i].r == 0)) {
             lines.erase(lines.begin() + i);
             i--;
             continue;
         }
-        /*if((lines[i].C_AR->data[0] > 1) || (lines[i].C_AR->data[0] > 1)) {
+      /*  if((lines[i].C_AR->data[0] > 0.5) || (lines[i].C_AR->data[0] > 0.5)) {
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);
             i--;
