@@ -12,16 +12,17 @@
 
 #define LINESIZE 100
 #define SLAMSIZE 203 // = LINESIZE*2+3
-#define MAHALANOBIS 0.1
-#define LINENOISE 0.08
-#define ENCODERNOISE 0.1
+#define MAHALANOBIS 0.15
+#define LINENOISE 0.03
+#define ENCODERNOISE 0.03
+
 
 class Robot
 {
 private:
 
     /// \brief stored lines part of the extended robot state vector
-    double y[LINESIZE*2];              //LINESIZE number of lines
+    double y[LINESIZE*2 + 3];              //LINESIZE: number of lines stored
     /// \brief number of lines saved in memory
     int savedLineCount;
     /// \brief old polar coordinate points in world reference frame found by the sensors
