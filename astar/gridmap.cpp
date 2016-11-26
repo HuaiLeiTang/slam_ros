@@ -51,9 +51,6 @@ GridMap::GridMap(float resolution, int size, ros::NodeHandle *handler): resoluti
 }
 
 void GridMap::PublishMap() {
-    while(mapPublisher.getNumSubscribers() != 1) {
-
-    }
     nav_msgs::OccupancyGrid msg;
     std_msgs::Header t_header;
     nav_msgs::MapMetaData t_into;

@@ -6,11 +6,12 @@
 #include "vec2.h"
 #include <fstream>
 #include "std_msgs/Float32MultiArray.h"
+#include "geometry_msgs/Transform.h"
 #include "LineXtraction.h"
 #include "gridmap.h"
 #include <unistd.h>
 
-
+#define SIMULATION
 
 
 using namespace std;
@@ -20,11 +21,13 @@ std::vector<Vec2> lineIntervals;
 std::vector<AncientObstacle*> robstacles;
 bool newlines = false;
 bool newpose = false;
+bool newrealpose = false;
 bool targetActive = true; //bool targetActive = false; saját térképezéskor
 bool tripEnd = true;
 double theta;
 bool inGo = false;
 Vec2 pose;
+Vec2 realpose;
 bool turn = false;
 bool inTurn = false;
 bool go = false;
@@ -69,10 +72,10 @@ void lines_cb(const std_msgs::Float32MultiArray::ConstPtr& array) {
     return;
 }
 
-void pose_cb(geometry_msgs::Vector3 msg) {
-    pose.x = msg.x*100;
-    pose.y = msg.y*100;
-    theta = msg.z;
+void pose_cb(geometry_msgs::Transform msg) {
+    pose.x = msg.translation.x*100;
+    pose.y = msg.translation.y*100;
+    theta = msg.translation.z;
     newpose = true;
     Vec2 temptarget(target.x,target.y);
     Vec2 temppose(pose.x,pose.y);
@@ -90,6 +93,11 @@ void pose_cb(geometry_msgs::Vector3 msg) {
     }
 }
 
+void realpose_cb(geometry_msgs::Vector3 msg) {
+    realpose.x = msg.x;
+    realpose.y = msg.y;
+    newrealpose = true;
+}
 // Main
 
 int main( int argc, char *argv[] )
@@ -102,23 +110,24 @@ int main( int argc, char *argv[] )
     Astar pathfinder;
     ros::Publisher thesues_pub = n.advertise<std_msgs::Float32MultiArray>("path", 100);
     ros::Subscriber sublines = n.subscribe<std_msgs::Float32MultiArray>("lines_1",100,lines_cb);
-    ros::Subscriber subpose = n.subscribe<geometry_msgs::Vector3>("robotPose",100,pose_cb);
+    ros::Subscriber subPose = n.subscribe<geometry_msgs::Transform>("robotPosition",10,&pose_cb);
     ros::Publisher pubCommand = n.advertise<geometry_msgs::Vector3>("/motionCommand",100);
+    ros::Subscriber realRoboPose =n.subscribe<geometry_msgs::Vector3>("realRoboPose",100,realpose_cb);
     //std_msgs::Float32MultiArray path;
-
-
     ros::Rate s(10);
     while(ros::ok) {
         if(firstCilkus) {
-            if((pubCommand.getNumSubscribers() == 1) && (sublines.getNumPublishers() == 1)) {
+            cout<<pubCommand.getNumSubscribers()<<endl;
+            if(/*(pubCommand.getNumSubscribers() == 1) (pubCommand.getNumSubscribers() == 2) && */(sublines.getNumPublishers() == 1)) {
                 command.x = 1;
                 command.y = 0;
                 command.z = 0;
                 pubCommand.publish(command);
+                cout<<"First Cikulas"<<endl;
                 firstCilkus = false;
             }
         }
-        if((newlines == true) && (newpose == true)) {
+        if((newlines == true) && (newpose == true)/* && (newrealpose == true)*/ ) {
             cout<<"New Ciklus"<<endl;
             gridmap.SetRobotPose(pose);
             cout<<"Set Robot Pose"<<endl;
@@ -158,12 +167,14 @@ int main( int argc, char *argv[] )
             }
             newlines = false;
             newpose = false;
+            newrealpose = false;
             gridmap.PublishMap();
             pathfinder.Reset();
             if(noPath) {
                 cout<<"No path"<<endl;
                 newlines = true;
                 newpose = true;
+                newrealpose = false;
                 tripEnd = true;
                 targetActive = false;
                 noPath = false;
