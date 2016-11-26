@@ -86,8 +86,8 @@ int main(int argc, char **argv) {
         s.sleep();
         if(newpose) {
             newpose = false;
-            sendPose.x = pose.x;
-            sendPose.y = pose.y;
+            sendPose.x = pose.x/100;
+            sendPose.y = pose.y/100;
             sendPose.z = pose.theta;
             cout<<"Dead Reck x "<<sendPose.x<<" y "<<sendPose.y<<" theta "<<sendPose.z<<endl;
             realPosePub.publish(sendPose);
