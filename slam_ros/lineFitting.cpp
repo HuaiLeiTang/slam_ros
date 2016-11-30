@@ -390,7 +390,7 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
         alfa_r_Pi_Qi.alfa = alfa_r_Pi_Qi.alfa + 2*PI;
     }
     line alfa_r_Pi_Qi_eps;
-    double eps = 0.001;
+    double eps = 0.000001;
     double alfa_derivat;
     double r_derivat;
     double alfa;
@@ -415,8 +415,8 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
     }
     for(int i = 0; i < cov_data.size();i++)
     {
-        gsl_matrix_set(C_x,i,i,cov_data[i].variance*cov_data[i].variance*2);
-        gsl_matrix_set(C_x,i + cov_data.size(),i + cov_data.size(),1/12*2);
+        gsl_matrix_set(C_x,i,i,cov_data[i].variance*cov_data[i].variance*1.5);
+        gsl_matrix_set(C_x,i + cov_data.size(),i + cov_data.size(),1/12*1.5);
     }
 
     int j = 0;
@@ -425,6 +425,7 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
         repo = cov_data[j].alfa;
         cov_data[j].alfa = cov_data[j].alfa + eps;
         alfa_r_Pi_Qi_eps = lineFitting(cov_data);
+        LineAlap(alfa_r_Pi_Qi_eps);
         if(alfa_r_Pi_Qi_eps.alfa  < 0) {
             alfa = alfa_r_Pi_Qi_eps.alfa + 2*PI;
         }
@@ -442,6 +443,9 @@ gsl_matrix* Covariancia(vector<polar_point> cov_data)
 
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pq,C_x,0.0,F_pg_C_x);//F_pq*C_x
     gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,F_pg_C_x,F_pq_t,0.0,C_ar);
+    double c = (C_ar->data[2]+C_ar->data[1])/2;
+    C_ar->data[1] = 0;
+    C_ar->data[2] = 0;
     return C_ar;
 }
 /*_____________Line Extracion_______________*/
@@ -603,13 +607,6 @@ void segmentation(vector<polar_point>& pol_points,vector<int>& split) {
 
 void LineConversion(vector<line>& lines) {
    for(int i = 0; i < lines.size(); i++) {
-        if(lines[i].r == 0) {
-            lines[i].WriteCov();
-            delete lines[i].C_AR;
-            lines.erase(lines.begin() + i);
-            i--;
-            continue;
-        }
         if((lines[i].C_AR->data[0] < 0 ) || (lines[i].C_AR->data[3] < 0) ) {
             lines[i].WriteCov();
             delete lines[i].C_AR;
@@ -617,14 +614,6 @@ void LineConversion(vector<line>& lines) {
             i--;
             continue;
         }
-
-       /* if(lines[i].C_AR->data[1] != lines[i].C_AR->data[2] ) {
-            delete lines[i].C_AR;
-            lines.erase(lines.begin() + i);
-            i--;
-            continue;
-        }*/
-
         if(  isnan(lines[i].C_AR->data[0])|| isnan(lines[i].C_AR->data[1]) || isnan(lines[i].C_AR->data[2]) || isnan(lines[i].C_AR->data[3])) {
             lines[i].WriteCov();
             delete lines[i].C_AR;
