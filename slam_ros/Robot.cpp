@@ -252,28 +252,28 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     }
     //debug
     std::cout << "\n FUCKFACE: \n";
-    for(int i = 0; i < 13; ++i){
+   /* for(int i = 0; i < 13; ++i){
         std::cout << std::endl;
         for(int j = 0; j < 13; ++j){
             std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&Fu_pre__Q__Fu_pre_trans_v.matrix ,i, j) << " ";
         }
-    }
+    }*/
     //debug
     std::cout << "\n P PRE:";
-    for(int i = 0; i < 12; ++i){
+   /* for(int i = 0; i < 12; ++i){
         std::cout << std::endl;
         for(int j = 0; j < 12; ++j){
             std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&P_pre_v.matrix ,i, j) << " ";
         }
-    }
+    }*/
     //debug
     std::cout << "\n Predicted Covariance matrix: \n";
-    for(int i = 0; i < 13; ++i){
+ /*   for(int i = 0; i < 13; ++i){
         std::cout << std::endl;
         for(int j = 0; j < 13; ++j){
             std::cout << setw(9) << setprecision(3) << gsl_matrix_get(&P_pre_v.matrix ,i, j) << " ";
         }
-    }
+    }*/
 
 
     matchesNum = 0;
@@ -290,8 +290,8 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
         std::cout << "\n LOOP 1";
 
         double R[4];
-        for(int i = 0; i < 4; i++) {
-           R[i] = lines[i].C_AR->data[i];
+        for(int j = 0; j < 4; j++) {
+           R[i] = (double)lines[i].C_AR->data[j];
         }
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
@@ -797,7 +797,7 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
 
         double R[4];
         for(int i = 0; i < 4; i++) {
-           R[i] = lin.C_AR->data[i];
+           R[i] = (double)lin.C_AR->data[i];
         }
         gsl_matrix_view R_v = gsl_matrix_view_array(R, 2, 2);           //line covariance goes here
 
