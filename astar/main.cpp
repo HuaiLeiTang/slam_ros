@@ -118,7 +118,7 @@ int main( int argc, char *argv[] )
     while(ros::ok) {
         if(firstCilkus) {
             cout<<pubCommand.getNumSubscribers()<<endl;
-            if(/*(pubCommand.getNumSubscribers() == 1) (pubCommand.getNumSubscribers() == 2) && */(sublines.getNumPublishers() == 1)) {
+            if( (pubCommand.getNumSubscribers() == 1) && (sublines.getNumPublishers() == 1)) {
                 command.x = 1;
                 command.y = 0;
                 command.z = 0;
@@ -135,8 +135,8 @@ int main( int argc, char *argv[] )
             cout<<"DrawObstacle"<<endl;
             gridmap.UpgradeKnownGrid(robstacles);
             cout<<"UpgradeKnownGrid"<<endl;
-            //gridmap.UpgradeTargets(robstacles);
-            cout<<"UpgradeTargets"<<endl;
+            /*gridmap.UpgradeTargets(robstacles);
+            cout<<"UpgradeTargets"<<endl;*/
             if(tripEnd) {
                 cout<<"New Trip"<<endl;
                 tripEnd = false;
@@ -208,8 +208,8 @@ int main( int argc, char *argv[] )
             inGo = true;
             command.x = 1;
             cout<<"Forward to "<<path[1]<<endl;
-            if( (((path[1] - pose).Lenght())/100) > 1.5 )
-                command.y = 1.5;
+            if( (((path[1] - pose).Lenght())/100) > 0.5 )
+                command.y = 0.5;
             else {
                 command.y = ((path[1] - pose).Lenght())/100;
             }

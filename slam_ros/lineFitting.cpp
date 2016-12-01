@@ -626,7 +626,7 @@ void LineConversion(vector<line>& lines) {
             i--;
             continue;
         }
-        if((lines[i].C_AR->data[0] > 0.5) || (lines[i].C_AR->data[0] > 0.5)) {
+        if((lines[i].C_AR->data[0] > 0.01) || (lines[i].C_AR->data[0] > 0.01)) {
             lines[i].WriteCov();
             delete lines[i].C_AR;
             lines.erase(lines.begin() + i);

@@ -61,7 +61,7 @@ public:
     Vec2 firstDown;
     Vec2 endUp;
     Vec2 endDown;
-    static constexpr double r = 35;
+    static constexpr double r = 25;
 };
 
 class RRTs {

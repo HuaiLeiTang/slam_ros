@@ -477,9 +477,9 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
             }
 
             //v_trans__S_inv__v[0] = std::abs(v_trans__S_inv__v[0]);
-            if(v_trans__S_inv__v[0] > g_2 || v_trans__S_inv__v[0] < 0 ){
+            if(sqrt(abs(v_trans__S_inv__v[0])) > g_2){
                 std::cout <<"\nno match, Mahalanobis: ";
-                std::cout << std::to_string(v_trans__S_inv__v[0]);
+                std::cout << std::to_string(sqrt(abs(v_trans__S_inv__v[0])));
                 if(j == savedLineCount-1){        //no match found for new line
                     extraLines.push_back(lines[i]);
                     std::cout << "\nNO match found";

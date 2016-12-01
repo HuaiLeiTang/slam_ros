@@ -12,9 +12,9 @@
 
 #define LINESIZE 100
 #define SLAMSIZE 203 // = LINESIZE*2+3
-#define MAHALANOBIS 0.15
+#define MAHALANOBIS 0.4
 #define LINENOISE 0.03
-#define ENCODERNOISE 0.03
+#define ENCODERNOISE 0.024
 
 
 class Robot

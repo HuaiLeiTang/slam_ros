@@ -19,10 +19,12 @@ double theta;
 Vec2 pose;
 bool newlines = false;
 bool newpose = false;
+ofstream output_file;
 
 void mapping_cb(std_msgs::Float32MultiArray msg){
-    ofstream output_file;
-    output_file.open("lines.txt");
+    if(!output_file.is_open()) {
+        output_file.open("lines.txt");
+    }
     ofstream cov;
     cov.open("cov.txt");
     points.clear();

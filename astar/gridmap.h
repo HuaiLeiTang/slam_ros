@@ -60,7 +60,7 @@ public:
     Vec2 NextGoal();
     std::vector<AncientObstacle*> SortObstacles(std::vector<AncientObstacle *> &obstacles);
     //----------A Star------------
-    static constexpr double r = 35;
+    static constexpr double r = 25;
     static constexpr double senser = 500;
 };
 

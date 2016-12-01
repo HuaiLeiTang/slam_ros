@@ -191,11 +191,17 @@ void GridMap::DrawPerfectObs(std::vector<AncientObstacle*> obstacles) {
             for(int j = 0; j <= iterFE; j++) {
                 Qvec = Vec2Quantization(FU + tempFD + FEstep*FELenght*((double)j/(double)iterFE));
                 index = MapIndex(Qvec);
+                if(index > dataSize - 2) {
+                    cout<<"Index fail in perfect obs"<<endl;
+                    exit(-1);
+                }
                 if(data[index] == OCCUPANCY) {
                     continue;
                 }
                 data[index] = OCCUPANCY;
+                cout<<"OCPAJ"<<endl;
                 this->gridObstacles.push_back(index);
+                cout<<"push_back"<<endl;
             }
         }
     }

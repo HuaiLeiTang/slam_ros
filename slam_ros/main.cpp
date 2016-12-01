@@ -38,13 +38,13 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
 
     //saving points with gaussian noise
     std::default_random_engine generator;
-    std::normal_distribution<double> distribution(0.0,0.004);        //0.4cm standard deviation
+    std::normal_distribution<double> distribution(0.0,0.01);        //0.4cm standard deviation
     for(int i = 0; i < msg.layout.dim[0].size; i+=2){
         points.push_back(temp);
         points[points.size()-1].alfa = msg.data[i+1] - M_PI;
         //points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
         points[points.size()-1].r = msg.data[i] + distribution(generator);
-        points[points.size()-1].variance = 0.04;
+        points[points.size()-1].variance = 0.01;
         //points[points.size()-1].weight = 1;
         //std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
     }

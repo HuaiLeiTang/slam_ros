@@ -146,7 +146,7 @@ vector<pair<line,vector<polar_point> > > simplifyPath::simplifyWithRDP(vector<po
     vector<polar_point> path1(polar_Points.begin(),it+index); //new path l1 from 0 to index
     vector<polar_point> path2(it+index,polar_Points.end()); // new path l2 from index to last
     //split_line.residual_error(polar_Points) > sum_di + 0.5*sum_var || split_line.residual_error(polar_Points) < sum_di - 0.5*sum_var
-    if( t > sum_di + sum_var*2)
+    if( t > sum_di + sum_var*3)
     {
     vector<pair<line,vector<polar_point> > > r1 = simplifyWithRDP(path1);
     vector<pair<line,vector<polar_point> > > r2=simplifyWithRDP(path2);
