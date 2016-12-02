@@ -123,7 +123,7 @@ bool Robot::getEllipse(float axii[], float &angle)
     }
 }
 
-void Robot::localize(float *rot, const std::vector<line> &lines)
+void Robot::localize(const std::vector<line> &lines, float *rot, const double *encoder)
 {
     gsl_set_error_handler_off();
     gsl_matrix_view P_t0_v = gsl_matrix_view_array(this->P_t0, SLAMSIZE, SLAMSIZE);
@@ -133,9 +133,18 @@ void Robot::localize(float *rot, const std::vector<line> &lines)
     u_odo[0] = static_cast<double>(rot[0]);
     u_odo[1] = static_cast<double>(rot[1]);
     double u[] = {0, 0, 0};
-    this->fiToXi(u_odo, u);   //only fully accurate for infinitesimal displacements
+    if(!SIMULATIONOFF){
+        this->fiToXi(u_odo, u);   //only fully accurate for infinitesimal displacements
 
-    //it can be assumed that u[1] (aka the y displacement) is always zero
+    }
+    if(SIMULATIONOFF){
+        u[2] = x_t0[2] - encoder[2];
+        double deltaX = x_t0[0] - encoder[0];
+        double deltaY = x_t0[1] - encoder[1];
+        u[0] = sqrt(deltaX*deltaX + deltaY*deltaY);
+    }
+
+    //it is assumed that u[1] (aka the y displacement) is always zero
     double x_pre[] = {x_t0[0] + u[0]*cos(x_t0[2]+u[2]/2.0), x_t0[1] + u[0]*sin(x_t0[2]+u[2]/2.0), x_t0[2] + u[2]};   //(possibly better without /2.0-s ?)
     gsl_matrix_view x_pre_v = gsl_matrix_view_array(x_pre, 3, 1);
 

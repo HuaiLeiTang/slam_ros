@@ -15,6 +15,7 @@
 #define MAHALANOBIS 0.4
 #define LINENOISE 0.03
 #define ENCODERNOISE 0.024
+#define SIMULATIONOFF true
 
 
 class Robot
@@ -70,7 +71,7 @@ public:
     void robot2World2(double *rot);
     void normalizeRadian(double& rad);
     bool getEllipse(float axii[2], float& angle);
-    void localize(float* rot, const std::vector<line> &lines);
+    void localize(const std::vector<line> &lines, float* rot = NULL, const double* encoder = NULL);
     void measure();
     void readOdometry(double &left, double &right);
 };

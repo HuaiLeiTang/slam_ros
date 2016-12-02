@@ -25,8 +25,12 @@
 #include "Robot.h"
 //#include "Vrep.h"
 
-bool update = true;
+bool update = false;
+bool encoderUpdate = false;
+bool sensUpdate = false;
 float rot[2];
+double encoderPose[3];
+
 std::vector<polar_point> points;
 std::vector<line> lines;
 
@@ -40,13 +44,19 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
     std::default_random_engine generator;
     std::normal_distribution<double> distribution(0.0,0.01);        //0.4cm standard deviation
     for(int i = 0; i < msg.layout.dim[0].size; i+=2){
-        points.push_back(temp);
-        points[points.size()-1].alfa = msg.data[i+1] - M_PI;
-        //points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
-        points[points.size()-1].r = msg.data[i] + distribution(generator);
-        points[points.size()-1].variance = 0.01;
-        //points[points.size()-1].weight = 1;
-        //std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
+        if(msg.data[i] > 0.05){
+            points.push_back(temp);
+            points[points.size()-1].alfa = msg.data[i+1] - M_PI;
+            //points[points.size()-1].alfa = msg.data[i+1] > M_PI ? msg.data[i+1]-2.0*M_PI : msg.data[i+1];
+            if(SIMULATIONOFF){
+                points[points.size()-1].r = msg.data[i];
+            }else{
+                points[points.size()-1].r = msg.data[i] + distribution(generator);
+            }
+            points[points.size()-1].variance = 0.01;
+            //points[points.size()-1].weight = 1;
+            //std::cout << "\npoint: " << points[points.size()-1].alfa << " " << points[points.size()-1].r;
+        }
     }
     std::cout << "\nstarting line extraction";
     lines = LineExtraction(points);
@@ -64,11 +74,18 @@ void mapping_cb(std_msgs::Float32MultiArray msg){
         std::cout << "\nno lines found";
     }
     std::cout << std::endl;
+    sensUpdate = true;
 }
 void encoderUpdate_cb(geometry_msgs::Vector3 msg){
     rot[0] = msg.x;
     rot[1] = msg.y;
     update = true;
+}
+void realpose_cb(geometry_msgs::Vector3 msg) {
+    encoderPose[0] = msg.x;
+    encoderPose[1] = msg.y;
+    encoderPose[2] = msg.z;
+    encoderUpdate = true;
 }
 
 int main(int argc,char* argv[])
@@ -104,6 +121,7 @@ int main(int argc,char* argv[])
 
     ros::Subscriber subEncoder = nh.subscribe<geometry_msgs::Vector3>("encoderPosition", 100, &encoderUpdate_cb);
     ros::Subscriber subMapping = nh.subscribe<std_msgs::Float32MultiArray>("mappingPoints", 10, &mapping_cb);
+    ros::Subscriber realRoboPose =nh.subscribe<geometry_msgs::Vector3>("realRoboPose",100,realpose_cb);
 
     usleep(1000000);        //the nodes require time to connect internally (otherwise the "publish" is lost)
 
@@ -115,9 +133,18 @@ int main(int argc,char* argv[])
         if(c == 119){
             std::cout << "FORWARD, MARCH!";
         }*/
+        if(encoderPose && sensUpdate){
+            update = true;
+        }
         if(update){
             update = false;
-            rover->localize(rot, lines);
+            encoderUpdate = false;
+            sensUpdate = false;
+            if(SIMULATIONOFF){
+                rover->localize(lines, NULL, encoderPose);
+            }else{
+                rover->localize(lines, rot);
+            }
             lines.clear();
 
             msg.translation.x = rover->xPos;
@@ -152,6 +179,7 @@ int main(int argc,char* argv[])
     }
     subEncoder.shutdown();
     subMapping.shutdown();
+    realRoboPose.shutdown();
     ros::shutdown();
     return 0;
 
