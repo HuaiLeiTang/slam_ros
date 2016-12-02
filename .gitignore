@@ -73,7 +73,6 @@ Thumbs.db
 *.dll
 *.exe
 build-*
-*_node
 p_*
 
 #Directories
